@@ -224,14 +224,18 @@ class HexBoard {
                     }
                 }
 
-                let hexTile = new HexTile(this.getHexToPixel(), [q, r], terrain, toHaveRobber);                
+                let hexTile = new HexTile(this.getHexToPixel(q, r), [q, r], terrain, toHaveRobber);                
                 this.hexTileArr.push(hexTile);
             }
         }
     } 
 
-    getHexToPixel() {
-        //TODO: add logic
+    //Conversion logic credit (for pointy-top hex to pixel): Red Blob Games - https://www.redblobgames.com/grids/hexagons/
+    getHexToPixel(q, r) {
+        let size = 60; //fine-tune to size hexes perfectly
+        let x = size * (Math.sqrt(3) * q + Math.sqrt(3)/2 * r);
+        let y = size * (3/2 * r);
+        
         return [x, y];
     }
 

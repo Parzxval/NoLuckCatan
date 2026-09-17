@@ -55,8 +55,8 @@ const game = new Phaser.Game({
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
-        width: 1730,
-        height: 1080
+        width: 1280,
+        height: 720
     },
     scene: [GameScene], //TODO: Add menu last
     title: "NoLuckCatan",
