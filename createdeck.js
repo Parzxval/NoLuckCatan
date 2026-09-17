@@ -2,7 +2,9 @@
  * A chip bag randomizer ~ represents a standard distribution of all possible 2-dice rolls as a deck of cards.
  * Allows for the same values to be exhausted for all players, favoring fairness over traditional dice luck.
  * 
- * takeTurn() groups core functionalities of DeckofCards -- only call needed in standard gamemode.
+ * Class functions to create a deck of cards as an array, shuffle deck, draw a card (pop number and return), and more.
+ * 
+ * takeTurn() groups core functionalities of DeckofCards -- only call needed in standard gamemode; returns "card" (popped number value).
  * 
  * @class
  */
@@ -20,8 +22,8 @@ class DeckofCards {
     }
 
     /**
-     * An all-in-one function call for the purpose of standard gamemode
-     * Calls createDeck() and shuffleDeck() if cardDeck.length == 0, then draws card
+     * An all-in-one function call for the purpose of standard gamemode.
+     * Calls createDeck() and shuffleDeck() if cardDeck.length == 0, then draws card.
      * 
      * @return {number} Card value drawn from helper function drawCard()
      */
@@ -38,7 +40,7 @@ class DeckofCards {
      * Randomly choose a number of 7 cards every reshuffle (Robber & Discard) from a user-defined range.
      */
     chooseNum7Cards() {
-        this.num7Cards = Math.floor(Math.random() * (this.max7 - this.min7 +1) + this.min7);
+        this.num7Cards = Math.floor(Math.random() * (this.max7 - this.min7 + 1) + this.min7);
     }
        
     /**
