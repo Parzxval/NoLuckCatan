@@ -21,34 +21,31 @@ class GameScene extends Phaser.Scene {
 
     }
     create() {
-        let min7 = 6;
-        let max7 = 6;
-        let players = 2; //max 4 players
-        let cardDeck = new DeckofCards(min7, max7);
-        let decksArr = [];
-        
-        for (let i = 0; i < players; i++) {
-            //The same card deck is copied and used since all players should have the same # of 7 cards
-            //1 deck per player is shuffled differently and then pushed into an array
-            let tempArr = Array.from(decksArr).shuffleDeck();
-            decksArr.push(tempArr);
-        }
-
-        //run deck length + 5 times, print player, card drawn, and deck length
-        console.log(decksArr + "\n");
-        let deckLen = cardDeck.getDeckLength();
-        
-        for (let i = 0; i < deckLen + 5; i++) {
-            for (let p = 0; p < players; p++) {
-                console.log("Player " + p + " card drawn: " + decksArr[p].takeTurn() + "\n");
-            }
-        }
-
-        
+        this.add.graphics().fillStyle(0x00ff00);
     }
     update() {
         
     }
+}
+
+function testCode() {
+    let min7 = 6;
+        let max7 = 6;
+        let players = 2; //max 4 players
+        let cardDeck = new DeckofCards(min7, max7);
+        let turnCt = 0;
+
+        cardDeck.createDeck();
+        cardDeck.shuffleDeck();
+        let deckLen = cardDeck.getDeckLength();
+
+        //run deck length + 5 times, print player, card drawn, and deck length
+            for (let i = 0; i < deckLen / 2 + 5; i++) {
+                for (let p = 0; p < players; p++) {
+                    turnCt++;
+                    console.log("Turn " + turnCt + ": Player " + (p + 1) + " card drawn: " + cardDeck.takeTurn() + "\n");
+                }
+        }
 }
 
 const game = new Phaser.Game({

@@ -1,13 +1,30 @@
 class HexTile {
-    constructor(pixelPos, axialCoords, terrain, hasRobber = false) {
-        this.pixelPos = pixelPos;
+    constructor(size, axialCoords, terrain, hasRobber = false) {
+        this.size = size;
         this.axialCoords = axialCoords;
+        this.pixelPos = this.getHexToPixel();
+        this.verticesPixelPos = [];
         this.terrain = terrain;
         this.hasRobber = hasRobber;
         this.sharedVertices = [];
         this.sharedEdges = [];
         this.rollNum = terrain == "Desert" ? 0 : null; 
         this.isRed = false; //6 and 8 valued tiles are marked as red, so they can't be placed next to each other (too OP)
+    }
+
+    //Conversion logic credit (for pointy-top hex to pixel): Red Blob Games - https://www.redblobgames.com/grids/hexagons/
+    getHexToPixel() {
+        let x = this.size * (Math.sqrt(3) * this.axialCoords[0] + Math.sqrt(3)/2 * this.axialCoords[1]);
+        let y = this.size * (3/2 * this.axialCoords[1]);
+        
+        return [x, y];
+    }
+
+    calcVerticesPixelPos() {
+        for (let i = 0; i < 6; i++) {
+            //angle = 60deg times i - 30 deg -> convert to radians -> x = pixelPos X value + size * cos(angle), y = pixelPos Y value + size * sin(angle)
+            
+        }
     }
 
     addSharedVertex(vertex) {
@@ -109,8 +126,9 @@ class HexBoard {
      * 
      * User-defined hexRadius param is redundant as of now; program will not take user input until added in the future.
      */
-    constructor(hexRadius = 2) {
+    constructor(hexRadius = 2, size) {
             this.hexRadius = hexRadius < 2 ? 2 : hexRadius; //hexRadius cannot be under 2, otherwise assigns to 2.
+            this.size = size;
             this.hexTileArr = [];
             this.terrains = [];
             this.rollNums = [];
@@ -224,19 +242,10 @@ class HexBoard {
                     }
                 }
 
-                let hexTile = new HexTile(this.getHexToPixel(q, r), [q, r], terrain, toHaveRobber);                
+                let hexTile = new HexTile(this.size, [q, r], terrain, toHaveRobber);                
                 this.hexTileArr.push(hexTile);
             }
         }
-    } 
-
-    //Conversion logic credit (for pointy-top hex to pixel): Red Blob Games - https://www.redblobgames.com/grids/hexagons/
-    getHexToPixel(q, r) {
-        let size = 60; //fine-tune to size hexes perfectly
-        let x = size * (Math.sqrt(3) * q + Math.sqrt(3)/2 * r);
-        let y = size * (3/2 * r);
-        
-        return [x, y];
     }
 
     chooseTerrain() {
