@@ -1,11 +1,12 @@
 class HexTile {
-    constructor(size, axialCoords, terrain, hasRobber = false) {
-        this.size = size;
+    constructor(axialCoords, terrain, hasRobber = false, size) {
         this.axialCoords = axialCoords;
-        this.pixelPos = this.getHexToPixel();
-        this.verticesPixelPos = [];
         this.terrain = terrain;
         this.hasRobber = hasRobber;
+        this.size = size;        
+        
+        this.pixelPos = this.getHexToPixel();
+        this.verticesPixels = this.calcVerticesPixelPos();
         this.sharedVertices = [];
         this.sharedEdges = [];
         this.rollNum = terrain == "Desert" ? 0 : null; 
@@ -21,10 +22,20 @@ class HexTile {
     }
 
     calcVerticesPixelPos() {
+        let vertPixArr = [];
+
         for (let i = 0; i < 6; i++) {
             //angle = 60deg times i - 30 deg -> convert to radians -> x = pixelPos X value + size * cos(angle), y = pixelPos Y value + size * sin(angle)
-            
+            let angle = 60 * i - 30;
+            let rad = angle * Math.PI / 180;
+
+            let x = this.pixelPos[0] + this.size * Math.cos(rad);
+            let y = this.pixelPos[1] + this.size * Math.sin(rad);
+
+            vertPixArr.push([x, y]);
         }
+
+        return vertPixArr;
     }
 
     addSharedVertex(vertex) {
@@ -69,6 +80,14 @@ class HexTile {
 
     getAxialCoords() {
         return this.axialCoords;
+    }
+
+    getPixelPos() {
+        return this.pixelPos;
+    }
+
+    getverticesPixels() {
+        return this.verticesPixels;
     }
 
 }
@@ -126,7 +145,7 @@ class HexBoard {
      * 
      * User-defined hexRadius param is redundant as of now; program will not take user input until added in the future.
      */
-    constructor(hexRadius = 2, size) {
+    constructor(hexRadius = 2, size = 60) {
             this.hexRadius = hexRadius < 2 ? 2 : hexRadius; //hexRadius cannot be under 2, otherwise assigns to 2.
             this.size = size;
             this.hexTileArr = [];
@@ -242,7 +261,7 @@ class HexBoard {
                     }
                 }
 
-                let hexTile = new HexTile(this.size, [q, r], terrain, toHaveRobber);                
+                let hexTile = new HexTile([q, r], terrain, toHaveRobber, size);                
                 this.hexTileArr.push(hexTile);
             }
         }
