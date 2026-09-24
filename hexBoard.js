@@ -32,7 +32,7 @@ class HexTile {
             let x = this.pixelPos[0] + this.size * Math.cos(rad);
             let y = this.pixelPos[1] + this.size * Math.sin(rad);
 
-            vertPixArr.push([x, y]);
+            vertPixArr.push({x, y});
         }
 
         return vertPixArr;
@@ -86,7 +86,7 @@ class HexTile {
         return this.pixelPos;
     }
 
-    getverticesPixels() {
+    getVerticesPixels() {
         return this.verticesPixels;
     }
 
@@ -128,6 +128,7 @@ class Vertex {
 
 class Edge {
     constructor() {
+        this.vertices = [];
         this.hasRoad = false;
     }
 
@@ -202,7 +203,7 @@ class HexBoard {
         //Go through the list of non-desert hexes, check if ANY of their neighbors are a red hex
             //If neighbors aren't a red hex, assign it a red roll number and break outer loop once there are no more red numbers
         for (let i = 0; i < this.notDesertHexList.length; i++) {   
-            let hexNeighbors = this.getNeighbors(this.notDesertHexList[i]);         
+            let hexNeighbors = this.getHexNeighbors(this.notDesertHexList[i]);         
             
             for (let a = 0; a < hexNeighbors.length; a++) {
                 if (hexNeighbors[a].getIsRed() == true) {
@@ -261,10 +262,12 @@ class HexBoard {
                     }
                 }
 
-                let hexTile = new HexTile([q, r], terrain, toHaveRobber, size);                
+                let hexTile = new HexTile([q, r], terrain, toHaveRobber, this.size);                
                 this.hexTileArr.push(hexTile);
             }
         }
+
+        this.assignRedNums();
     }
 
     chooseTerrain() {
@@ -275,7 +278,7 @@ class HexBoard {
         return this.rollNums.pop();
     }
 
-    getNeighbors(hex) {
+    getHexNeighbors(hex) {
         let anchorCoords = hex.getAxialCoords();
         let tempList = [];
         let neighborHexList = [];
@@ -300,5 +303,26 @@ class HexBoard {
         }
 
         return neighborHexList;
+    }
+
+    getEdgeNeighbors(hex) {
+        let hexNeighbors = this.getHexNeighbors(hex);
+        let axCoords = hex.getAxialCoords();
+        let neighborEdgeList = Array(6).fill(null); 
+        let offsetPairs = [[1,0], [1,-1], [0,-1], [-1,0], [-1,1], [0,1]];
+
+        for (let i = 0; i < hexNeighbors.length; i++) {
+            let neighborAxCoords = hexNeighbors[i].getAxialCoords();
+            let axDelta = [neighborAxCoords[0] - axCoords[0], neighborAxCoords[1] - axCoords[1]];
+
+            let index = offsetPairs.findIndex(arr => arr.every((num, idx) => num === axDelta[idx]));
+            neighborEdgeList[index] = hexNeighbors[i];
+        }
+
+        return neighborEdgeList;
+    }
+
+    getHexTileArr() {
+        return this.hexTileArr;
     }
 }

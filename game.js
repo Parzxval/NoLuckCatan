@@ -21,8 +21,26 @@ class GameScene extends Phaser.Scene {
 
     }
     create() {
-        this.add.graphics().fillStyle(0x00ff00);
+        //center of screen x and y values
+        this.centerX = this.sys.game.config.width/2;
+        this.centerY = this.sys.game.config.height/2;
+
+        this.hexboard = new HexBoard();
+        this.hexboard.buildHexBoard();
+
+        this.tileList = this.hexboard.getHexTileArr();
+        this.numTiles = this.tileList.length;
+
+        for (let i = 0; i < this.numTiles; i++) {
+            let tilePts = this.tileList[i].getVerticesPixels();
+            //add screen offsets to pixel coords of each tile pt
+            let offsetPts = tilePts.map((pt) => ({x: pt.x + this.centerX, y: pt.y + this.centerY}));
+            
+            this.add.graphics().fillStyle(0x00ff00).fillPoints(offsetPts);
+            this.add.graphics().lineStyle(1, 0x000000).strokePoints(offsetPts);
+        }
     }
+
     update() {
         
     }
