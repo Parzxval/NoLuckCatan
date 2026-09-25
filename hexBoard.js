@@ -42,8 +42,8 @@ class HexTile {
         this.sharedVertices.push(vertex);
     }
 
-    addSharedEdge() {
-
+    addSharedEdge(edge) {
+        this.sharedEdges.push(edge);
     }
 
     addRobber() {
@@ -90,6 +90,10 @@ class HexTile {
         return this.verticesPixels;
     }
 
+    getSharedEdges() {
+        return this.sharedEdges;
+    }
+
 }
 
 class Vertex {
@@ -127,13 +131,18 @@ class Vertex {
 }
 
 class Edge {
-    constructor() {
+    constructor(sharedHexes) {
+        this.sharedHexes = sharedHexes; //array of length 1 or 2
         this.vertices = [];
         this.hasRoad = false;
     }
 
     addRoad() {
         this.hasRoad = true;
+    }
+
+    getSharedHexes() {
+        return this.sharedHexes;
     }
 }
 
@@ -150,6 +159,8 @@ class HexBoard {
             this.hexRadius = hexRadius < 2 ? 2 : hexRadius; //hexRadius cannot be under 2, otherwise assigns to 2.
             this.size = size;
             this.hexTileArr = [];
+            this.edgeArray = [];
+            this.vertexArray = [];
             this.terrains = [];
             this.rollNums = [];
 
@@ -236,8 +247,14 @@ class HexBoard {
 
     }
 
+    buildHexBoard() {
+        this.buildHexTiles();
+        this.buildVertices();
+        this.buildEdges();
+    }
 
-    buildHexBoard() {       
+
+    buildHexTiles() {       
         let desertHexCt = 0;
         
         for (let q = this.hexRadius * -1; q <= this.hexRadius; q++) {
@@ -268,6 +285,36 @@ class HexBoard {
         }
 
         this.assignRedNums();
+    }
+
+    buildVertices() {
+
+    }
+
+    buildEdges() {
+        for (let i = 0; i < this.hexTileArr.length; i++) {
+            let hexNeighbors = this.getHexNeighborsByEdge(this.hexTileArr[i]); //Get the list of 6 hextile neighbors per edge
+            
+            for (let a = 0; a < 6; a++) {
+                if (hexNeighbors[a] == null) { //No hextile neighbor means hextile is a boundary
+                    let edge = new Edge([this.hexTileArr[i]]); //Create an edge with just one connected hextile
+                    this.edgeArray.push(edge);
+                    this.hexTileArr[i].addSharedEdge(edge);
+                }
+                else {
+                    let edgeElement = this.edgeArray.find(arr => arr.getSharedHexes().includes(hexNeighbors[a]) && arr.getSharedHexes().includes(this.hexTileArr[i]));
+                    
+                    if (edgeElement != undefined) {
+                        this.hexTileArr[i].addSharedEdge(edgeElement);
+                    }
+                    else {
+                        let edge = new Edge([hexNeighbors[a], this.hexTileArr[i]]);
+                        this.edgeArray.push(edge);
+                        this.hexTileArr[i].addSharedEdge(edge);
+                    }
+                }
+            }
+        }
     }
 
     chooseTerrain() {
@@ -305,7 +352,7 @@ class HexBoard {
         return neighborHexList;
     }
 
-    getEdgeNeighbors(hex) {
+    getHexNeighborsByEdge(hex) {
         let hexNeighbors = this.getHexNeighbors(hex);
         let axCoords = hex.getAxialCoords();
         let neighborEdgeList = Array(6).fill(null); 
