@@ -94,13 +94,19 @@ class HexTile {
         return this.sharedEdges;
     }
 
+    getSharedVertices() {
+        return this.sharedVertices;
+    }
+
 }
 
 class Vertex {
-    constructor(hasPort) {
+    constructor(sharedHexes, hasPort = false) {
+        this.vertexSharedHexes = sharedHexes;
+        this.hasPort = hasPort;
         this.hasSettlement = false;
         this.hasCity = false;
-        this.hasPort = hasPort;
+        this.vertexEdges = [];
     }
 
     checkForSettlement() {
@@ -128,12 +134,24 @@ class Vertex {
         }
     }
     //Can't remove city or settlement
+
+    addSharedEdge(edge) {
+        this.vertexEdges.push(edge);
+    }
+
+    getVertexSharedHexes() {
+        return this.vertexSharedHexes;
+    }
+
+    getVertexEdges() {
+        return this.vertexEdges;
+    }
 }
 
 class Edge {
     constructor(sharedHexes) {
-        this.sharedHexes = sharedHexes; //array of length 1 or 2
-        this.vertices = [];
+        this.edgeSharedHexes = sharedHexes; //array of length 1 or 2
+        this.edgeVertices = [];
         this.hasRoad = false;
     }
 
@@ -141,8 +159,16 @@ class Edge {
         this.hasRoad = true;
     }
 
-    getSharedHexes() {
-        return this.sharedHexes;
+    addSharedVertex(vertex) {
+        this.edgeVertices.push(vertex);
+    }
+
+    getEdgeSharedHexes() {
+        return this.edgeSharedHexes;
+    }
+
+    getEdgeVertices() {
+        return this.edgeVertices;
     }
 }
 
@@ -249,8 +275,8 @@ class HexBoard {
 
     buildHexBoard() {
         this.buildHexTiles();
-        this.buildVertices();
         this.buildEdges();
+        this.buildVertices();
     }
 
 
@@ -288,7 +314,52 @@ class HexBoard {
     }
 
     buildVertices() {
+        //Used to look up which sides a corner corresponds to with the given hexboard setup
+        let edgeTable  = [[0, 1], [0, 5], [5, 4], [4, 3], [3, 2], [2, 1]];
+        
+        for(let i = 0; i < this.hexTileArr.length; i++) {
+            let hexNeighbors = this.getHexNeighborsByEdge(this.hexTileArr[i]);
 
+            for (let a = 0; a < 6; a++) {
+                let s1 = edgeTable[a][0], s2 = edgeTable[a][1];
+                let hexCornerSet = [this.hexTileArr[i]];
+
+                if (hexNeighbors[s1]  != null) {
+                    hexCornerSet.push(hexNeighbors[s1]);
+                }
+                if (hexNeighbors[s2] != null) {
+                    hexCornerSet.push(hexNeighbors[s2]);
+                }
+
+                let vertexElement = this.vertexArray.find(arr => arr.getVertexSharedHexes().length === hexCornerSet.length && hexCornerSet.every(hex => arr.getVertexSharedHexes().includes(hex)));
+
+                if (hexCornerSet.length === 1 || vertexElement == undefined) {
+                    vertexElement = new Vertex(hexCornerSet, false);
+                    this.vertexArray.push(vertexElement);
+                    this.hexTileArr[i].addSharedVertex(vertexElement);
+                }                
+                else {
+                    this.hexTileArr[i].addSharedVertex(vertexElement);
+                }
+
+                let flankEdge1 = this.hexTileArr[i].getSharedEdges()[s1];
+                if (!(flankEdge1.getEdgeVertices().includes(vertexElement))) {
+                    flankEdge1.addSharedVertex(vertexElement);
+                }
+
+                let flankEdge2 = this.hexTileArr[i].getSharedEdges()[s2];
+                if (!(flankEdge2.getEdgeVertices().includes(vertexElement))) {
+                    flankEdge2.addSharedVertex(vertexElement);
+                }
+
+                if (!(vertexElement.getVertexEdges().includes(flankEdge1))) {
+                    vertexElement.addSharedEdge(flankEdge1);
+                }
+                if (!(vertexElement.getVertexEdges().includes(flankEdge2))) {
+                    vertexElement.addSharedEdge(flankEdge2);
+                }
+            }
+        }
     }
 
     buildEdges() {
@@ -302,7 +373,7 @@ class HexBoard {
                     this.hexTileArr[i].addSharedEdge(edge);
                 }
                 else {
-                    let edgeElement = this.edgeArray.find(arr => arr.getSharedHexes().includes(hexNeighbors[a]) && arr.getSharedHexes().includes(this.hexTileArr[i]));
+                    let edgeElement = this.edgeArray.find(arr => arr.getEdgeSharedHexes().includes(hexNeighbors[a]) && arr.getEdgeSharedHexes().includes(this.hexTileArr[i]));
                     
                     if (edgeElement != undefined) {
                         this.hexTileArr[i].addSharedEdge(edgeElement);
