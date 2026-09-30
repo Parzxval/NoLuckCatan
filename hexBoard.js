@@ -101,7 +101,8 @@ class HexTile {
 }
 
 class Vertex {
-    constructor(sharedHexes, hasPort = false) {
+    constructor(pixelPos, sharedHexes, hasPort = false) {
+        this.vertexPixelPos = pixelPos;
         this.vertexSharedHexes = sharedHexes;
         this.hasPort = hasPort;
         this.hasSettlement = false;
@@ -145,6 +146,10 @@ class Vertex {
 
     getVertexEdges() {
         return this.vertexEdges;
+    }
+
+    getVertexPixelPos() {
+        return this.vertexPixelPos;
     }
 }
 
@@ -331,10 +336,11 @@ class HexBoard {
                     hexCornerSet.push(hexNeighbors[s2]);
                 }
 
+                let pixelPos = this.hexTileArr[i].getVerticesPixels()[a];
                 let vertexElement = this.vertexArray.find(arr => arr.getVertexSharedHexes().length === hexCornerSet.length && hexCornerSet.every(hex => arr.getVertexSharedHexes().includes(hex)));
 
                 if (hexCornerSet.length === 1 || vertexElement == undefined) {
-                    vertexElement = new Vertex(hexCornerSet, false);
+                    vertexElement = new Vertex(pixelPos, hexCornerSet, false);
                     this.vertexArray.push(vertexElement);
                     this.hexTileArr[i].addSharedVertex(vertexElement);
                 }                
@@ -440,6 +446,14 @@ class HexBoard {
         return neighborEdgeList;
     }
 
+    getVertexArr() {
+        return this.vertexArray;
+    }
+
+    getEdgeArr() {
+        return this.edgeArray;
+    }
+    
     getHexTileArr() {
         return this.hexTileArr;
     }
