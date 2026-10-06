@@ -68,15 +68,17 @@ class GameScene extends Phaser.Scene {
         this.buildingImgs = new Map();
         this.roadImgs = new Map();
 
+        //Draw hextiles
         for (let i = 0; i < this.numTiles; i++) {
             let tilePts = this.tileList[i].getVerticesPixels();
             //add screen offsets to pixel coords of each tile pt
-            let offsetPts = tilePts.map((pt) => ({x: pt.x + this.centerX, y: pt.y + this.centerY}));
+            tilePts = tilePts.map((pt) => ({x: pt.x + this.centerX, y: pt.y + this.centerY}));
             
-            this.add.graphics().fillStyle(0x00ff00).fillPoints(offsetPts);
-            this.add.graphics().lineStyle(1, 0x000000).strokePoints(offsetPts);
+            this.add.graphics().fillStyle(0x00ff00).fillPoints(tilePts);
+            this.add.graphics().lineStyle(1, 0x000000).strokePoints(tilePts);
         }
 
+        //Draw edges
         this.edgeList = this.hexBoard.getEdgeArr();
         
         for (let i = 0; i < this.edgeList.length; i++) {
@@ -87,7 +89,17 @@ class GameScene extends Phaser.Scene {
 
             let p2 = edgeVertices[1].getVertexPixelPos();
             p2 = {x: p2.x + this.centerX, y: p2.y + this.centerY};
-        }
+        } 
+
+        //Create clickable vertices
+        this.vertexList = this.hexBoard.getVertexArr();
+
+        let vertexPts = this.vertexList[0].getVertexPixelPos();
+        vertexPts = {x: vertexPts.x + this.centerX, y: vertexPts.y + this.centerY};
+
+        this.add.zone(vertexPts.x, vertexPts.y, 20, 20).setInteractive().on('pointerdown', () => {
+            this.placeSettlement(this.vertexList[0]);
+        })
 
     }
 
@@ -121,6 +133,11 @@ class GameScene extends Phaser.Scene {
         vertices/edges that the item can be placed on is highlighted. On selection of a highlighted vertex or edge, the corresponding 
         function is triggered. There is a button to end turn.
         */
+
+        if (this.player.getPlayerVictoryPts() >= 10) {
+            this.registry.set('winner', this.player);
+            this.scene.start('victoryScene');
+        }
     }
 
     givePlayerResources() {
@@ -149,6 +166,7 @@ class GameScene extends Phaser.Scene {
             }
         }
 
+        return;
     }
 
     placeRoad(edge) {        
@@ -206,6 +224,7 @@ class GameScene extends Phaser.Scene {
             this.player.addOwnedVertex(vertex);
 
             this.player.decrementPlacementsLeft("settlements");
+            this.player.addVictoryPt();
 
             let pt = vertex.getVertexPixelPos();
             pt = {x: (pt.x + this.centerX), y: (pt.y + this.centerY)};
@@ -225,13 +244,16 @@ class GameScene extends Phaser.Scene {
             this.buildingImgs.get(vertex).setTexture('city');
             vertex.addCity();
             vertex.setOwner(this.player);
-
+            
             this.player.decrementPlacementsLeft("cities");
+            this.player.addVictoryPt();
         }
         else {
             this.givePlacementError(3);
             return;
-        }        
+        } 
+        
+        return;
     }
 
     
@@ -276,6 +298,24 @@ class GameScene extends Phaser.Scene {
     }
 }
 
+class VictoryScene extends Phaser.Scene {
+    constructor() {
+        super('victoryScene');
+    }
+
+    preload() {
+
+    }
+
+    create() {
+
+    }
+
+    update() {
+
+    }
+}
+
 const game = new Phaser.Game({
     scale: {
         mode: Phaser.Scale.FIT,
@@ -283,6 +323,6 @@ const game = new Phaser.Game({
         width: 1280,
         height: 720
     },
-    scene: [GameScene], //TODO: Add menu last
+    scene: [GameScene], //TODO: Add Menu and victoryScene last
     title: "NoLuckCatan",
 });
