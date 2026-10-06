@@ -94,12 +94,35 @@ class GameScene extends Phaser.Scene {
         //Create clickable vertices
         this.vertexList = this.hexBoard.getVertexArr();
 
-        let vertexPts = this.vertexList[0].getVertexPixelPos();
-        vertexPts = {x: vertexPts.x + this.centerX, y: vertexPts.y + this.centerY};
+        for (let i = 0; i < this.vertexList.length; i++) {
+            let vertexPts = this.vertexList[i].getVertexPixelPos();
+            vertexPts = {x: vertexPts.x + this.centerX, y: vertexPts.y + this.centerY};
 
-        this.add.zone(vertexPts.x, vertexPts.y, 20, 20).setInteractive().on('pointerdown', () => {
-            this.placeSettlement(this.vertexList[0]);
-        })
+            this.add.graphics().fillStyle(0xff0000).fillCircle(vertexPts.x, vertexPts.y, 6);
+            this.add.zone(vertexPts.x, vertexPts.y, 20, 20).setInteractive().on('pointerdown', () => {
+                this.placeSettlement(this.vertexList[i]);
+            })
+        }
+
+        //Create clickable edges
+        for (let i = 0; i < this.edgeList.length; i++) {           
+            let edgeVertices = this.edgeList[i].getEdgeVertices();
+
+            let p1 = edgeVertices[0].getVertexPixelPos();
+            p1 = {x: p1.x +  this.centerX, y: p1.y + this.centerY};
+
+            let p2 = edgeVertices[1].getVertexPixelPos();
+            p2 = {x: p2.x + this.centerX, y: p2.y + this.centerY};
+
+            let pAvg = {x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2};
+
+            this.add.graphics().fillStyle(0x000000).fillCircle(pAvg.x, pAvg.y, 6);
+            this.add.zone(pAvg.x, pAvg.y, 20, 20). setInteractive().on('pointerdown', () => {
+                this.placeRoad(this.edgeList[i]);
+            })
+        }
+
+        this.takeTurnByPlayer();
 
     }
 
@@ -195,7 +218,7 @@ class GameScene extends Phaser.Scene {
 
             let pAvg = {x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2};
 
-            let rdImg = this.add.image(pAvg.x, pAvg.y, 'road').setRotation(Math.atan2(p2.y - p1.y, p2.x - p1.x)).setScale(0.1);
+            let rdImg = this.add.image(pAvg.x, pAvg.y, 'road').setRotation(Math.atan2(p2.y - p1.y, p2.x - p1.x) + Math.PI / 2).setScale(0.08);
             this.roadImgs.set(edge, rdImg);
         }
 
@@ -228,7 +251,7 @@ class GameScene extends Phaser.Scene {
 
             let pt = vertex.getVertexPixelPos();
             pt = {x: (pt.x + this.centerX), y: (pt.y + this.centerY)};
-            let buildingImg = this.add.image(pt.x, pt.y, 'settlement').setScale(0.1);
+            let buildingImg = this.add.image(pt.x, pt.y, 'settlement').setScale(0.04).setDepth(1);
             this.buildingImgs.set(vertex, buildingImg);
         }
         return;
@@ -323,6 +346,6 @@ const game = new Phaser.Game({
         width: 1280,
         height: 720
     },
-    scene: [GameScene], //TODO: Add Menu and victoryScene last
+    scene: [GameScene, VictoryScene], //TODO: Add Menu and victoryScene last
     title: "NoLuckCatan",
 });
