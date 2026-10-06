@@ -5,8 +5,9 @@ class HexTile {
         this.hasRobber = hasRobber;
         this.size = size;        
         
-        this.pixelPos = this.getHexToPixel();
+        this.pixelPos = this.calcHexToPixel();
         this.verticesPixels = this.calcVerticesPixelPos();
+        this.resourceType = this.calcResourceType();
         this.sharedVertices = [];
         this.sharedEdges = [];
         this.rollNum = terrain == "Desert" ? 0 : null; 
@@ -14,11 +15,28 @@ class HexTile {
     }
 
     //Conversion logic credit (for pointy-top hex to pixel): Red Blob Games - https://www.redblobgames.com/grids/hexagons/
-    getHexToPixel() {
+    calcHexToPixel() {
         let x = this.size * (Math.sqrt(3) * this.axialCoords[0] + Math.sqrt(3)/2 * this.axialCoords[1]);
         let y = this.size * (3/2 * this.axialCoords[1]);
         
         return [x, y];
+    }
+
+    calcResourceType() {
+        this.terrainToResource = {
+            Forest: "Wood",
+            Pasture: "Wool",
+            Hill: "Brick",
+            Mountain: "Ore",
+            Field: "Wheat"
+        };
+
+        if (this.terrain === "Desert") {
+            return null;
+        }
+        else {
+            return this.terrainToResource[this.terrain];
+        }
     }
 
     calcVerticesPixelPos() {
@@ -70,12 +88,20 @@ class HexTile {
         }
     }
 
+    getRollNum() {
+        return this.rollNum;
+    }
+
     getRobber() {
         return this.hasRobber;
     }
 
     getTerrain() {
         return this.terrain;
+    }
+
+    getResourceType() {
+        return this.resourceType;
     }
 
     getAxialCoords() {
@@ -108,18 +134,13 @@ class Vertex {
         this.hasSettlement = false;
         this.hasCity = false;
         this.vertexEdges = [];
+        this.owner = null;
     }
 
-    checkForSettlement() {
-        return this.hasSettlement;
-    }
-
-    checkForCity() {
-        return this.hasCity;
-    }
-
-    checkForPort() {
-        return this.hasPort;
+    checkForTwoConnectingRoads() {
+        let hasTwoConnectingRoads = false;
+        //TODO: implement logic
+        return hasTwoConnectingRoads;
     }
 
     addSettlement() {
@@ -134,8 +155,12 @@ class Vertex {
             this.hasCity = true;
         }
     }
-    //Can't remove city or settlement
+    //Can't remove city, can only remove settlement by upgrading to city
 
+    setOwner(player) {
+        this.owner = player;
+    }
+    
     addSharedEdge(edge) {
         this.vertexEdges.push(edge);
     }
@@ -151,6 +176,22 @@ class Vertex {
     getVertexPixelPos() {
         return this.vertexPixelPos;
     }
+
+    getHasSettlement() {
+        return this.hasSettlement;
+    }
+
+    getHasCity() {
+        return this.hasCity;
+    }
+
+    getHasPort() {
+        return this.hasPort;
+    }
+
+    getOwner() {
+        return this.owner;
+    }
 }
 
 class Edge {
@@ -158,6 +199,7 @@ class Edge {
         this.edgeSharedHexes = sharedHexes; //array of length 1 or 2
         this.edgeVertices = [];
         this.hasRoad = false;
+        this.owner = null;
     }
 
     addRoad() {
@@ -168,12 +210,24 @@ class Edge {
         this.edgeVertices.push(vertex);
     }
 
+    setOwner(player) {
+        this.owner = player;
+    }
+
     getEdgeSharedHexes() {
         return this.edgeSharedHexes;
     }
 
     getEdgeVertices() {
         return this.edgeVertices;
+    }
+
+    getHasRoad() {
+        return this.hasRoad;
+    }
+
+    getOwner() {
+        return this.owner;
     }
 }
 

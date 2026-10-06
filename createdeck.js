@@ -28,7 +28,7 @@ class DeckofCards {
      * @return {number} Card value drawn from helper function drawCard()
      */
     takeTurn() {        
-        if (this.getDeckLength() == 0) {
+        if (this.getDeckLength() === 0) {
             this.createDeck();
             this.shuffleDeck();
         }
