@@ -187,7 +187,7 @@ class GameScene extends Phaser.Scene {
     placeSettlement(vertex) {
         //Check for pre-existing city or settlement
         //If it isn't preparation phase (turns 1 through (num of players * 2)), check for 2 connecting roads on vertex
-        let isPrepPhase = this.turnCt <= (this.playerCt * 2);
+        this.isPrepPhase = this.turnCt <= (this.playerCt * 2);
 
         if (this.player.getPlacementsLeft().settlements == 0) {
             this.givePlacementError(5);
@@ -197,8 +197,7 @@ class GameScene extends Phaser.Scene {
             this.givePlacementError(1);
             return;
         }
-        else if (!(isPrepPhase) && vertex.checkForTwoConnectingRoads() == false) {
-            this.givePlacementError(4);
+        else if (!this.settlementPlacementCheck(vertex)) {
             return;
         }
         else {
@@ -235,13 +234,42 @@ class GameScene extends Phaser.Scene {
         }        
     }
 
+    
+    settlementPlacementCheck(vertex) {
+        let neighborEdges = vertex.getVertexEdges();
+        let hasOwnRoad = false; //check if any edge touching current vertex has a road
+
+        for (let i = 0; i < neighborEdges.length; i++) {
+            //get shared edges by vertex, then get the corresponding vertex that isn't this vertex
+            let neighborVertex = neighborEdges[i].getEdgeVertices().find(v => v !== vertex);
+
+            if (neighborVertex.getHasCity() || neighborVertex.getHasSettlement()) {
+                this.givePlacementError(6);
+                return;
+            }
+            else if (neighborEdges[i].getHasRoad() && neighborEdges[i].getOwner() === this.player){
+                hasOwnRoad = true;
+            }
+        }
+
+        if (hasOwnRoad || this.isPrepPhase) {
+            return true;
+        }
+        else {
+            this.givePlacementError(7);
+            return;
+        }
+    }
+
     givePlacementError(errorNum) {
         const errorList = {
             1: "There is already a settlement or city there.",
             2: "There is already a road there.",
             3: "Settlement needed to upgrade to city.",
             4: "Two connecting roads needed to place settlement.",
-            5: "Max number of resource placed"
+            5: "Max number of building type placed.",
+            6: "Placement too close to existing building.",
+            7: "Build a connecting road first."
         }
         alert(errorList[errorNum]);
         return;

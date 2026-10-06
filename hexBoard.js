@@ -137,12 +137,6 @@ class Vertex {
         this.owner = null;
     }
 
-    checkForTwoConnectingRoads() {
-        let hasTwoConnectingRoads = false;
-        //TODO: implement logic
-        return hasTwoConnectingRoads;
-    }
-
     addSettlement() {
         if (this.hasCity == false && this.hasSettlement == false) {
             this.hasSettlement = true;
@@ -289,7 +283,7 @@ class HexBoard {
 
         //Create an array of hexes that aren't desert hexes
         for (let i = 0; i < this.hexTileArr.length; i++) {
-            if (this.hexTileArr[i].getTerrain() != "Desert") {
+            if (this.hexTileArr[i].getTerrain() !== "Desert") {
                 this.notDesertHexList.push(this.hexTileArr[i]);
             }
         }
@@ -383,10 +377,10 @@ class HexBoard {
                 let s1 = edgeTable[a][0], s2 = edgeTable[a][1];
                 let hexCornerSet = [this.hexTileArr[i]];
 
-                if (hexNeighbors[s1]  != null) {
+                if (hexNeighbors[s1]  !== null) {
                     hexCornerSet.push(hexNeighbors[s1]);
                 }
-                if (hexNeighbors[s2] != null) {
+                if (hexNeighbors[s2] !== null) {
                     hexCornerSet.push(hexNeighbors[s2]);
                 }
 
@@ -435,7 +429,7 @@ class HexBoard {
                 else {
                     let edgeElement = this.edgeArray.find(arr => arr.getEdgeSharedHexes().includes(hexNeighbors[a]) && arr.getEdgeSharedHexes().includes(this.hexTileArr[i]));
                     
-                    if (edgeElement != undefined) {
+                    if (edgeElement !== undefined) {
                         this.hexTileArr[i].addSharedEdge(edgeElement);
                     }
                     else {
