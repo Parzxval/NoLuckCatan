@@ -48,6 +48,10 @@ class Player {
         this.placementsLeft[type]--;
     }
 
+    getPlayerNum() {
+        return this.playerNum;
+    }
+
     getPlayerResources() {
         return this.resourceCt;
     }

@@ -41,6 +41,9 @@ class GameScene extends Phaser.Scene {
         //center of screen x and y values
         this.centerX = this.sys.game.config.width/2;
         this.centerY = this.sys.game.config.height/2;
+        //Screen width and height
+        this.width = this.sys.game.config.width;
+        this.height = this.sys.game.config.height;
 
         this.playerCt = 2; //TODO: create input sliders
         this.playersList = [];
@@ -74,22 +77,9 @@ class GameScene extends Phaser.Scene {
             //add screen offsets to pixel coords of each tile pt
             tilePts = tilePts.map((pt) => ({x: pt.x + this.centerX, y: pt.y + this.centerY}));
             
-            this.add.graphics().fillStyle(0x00ff00).fillPoints(tilePts);
+            this.add.graphics().fillStyle(0x0bfdb).fillPoints(tilePts);
             this.add.graphics().lineStyle(1, 0x000000).strokePoints(tilePts);
         }
-
-        //Draw edges
-        this.edgeList = this.hexBoard.getEdgeArr();
-        
-        for (let i = 0; i < this.edgeList.length; i++) {
-            let edgeVertices = this.edgeList[i].getEdgeVertices();
-            
-            let p1 = edgeVertices[0].getVertexPixelPos();
-            p1 = {x: p1.x +  this.centerX, y: p1.y + this.centerY};
-
-            let p2 = edgeVertices[1].getVertexPixelPos();
-            p2 = {x: p2.x + this.centerX, y: p2.y + this.centerY};
-        } 
 
         //Create clickable vertices
         this.vertexList = this.hexBoard.getVertexArr();
@@ -105,6 +95,8 @@ class GameScene extends Phaser.Scene {
         }
 
         //Create clickable edges
+        this.edgeList = this.hexBoard.getEdgeArr();
+
         for (let i = 0; i < this.edgeList.length; i++) {           
             let edgeVertices = this.edgeList[i].getEdgeVertices();
 
@@ -122,7 +114,13 @@ class GameScene extends Phaser.Scene {
             })
         }
 
+        this.playerTurnText = this.add.text(100, 50, "").setDepth(1);
         this.takeTurnByPlayer();
+        //end turn button
+        this.add.text(this.width - 100, this.height - 50, "End Turn").setDepth(1);
+        this.add.rectangle(this.width - 60, this.height - 43, 90, 20, 0x00ff00).setInteractive().on('pointerdown', () => {
+            this.takeTurnByPlayer();
+        })
 
     }
 
@@ -142,12 +140,14 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    takeTurnByPlayer() {
+    takeTurnByPlayer() {    
         this.currentCard = this.cardDeck.takeTurn();
         this.turnCt++;
         
         let playerNum = (this.turnCt - 1) % this.playerCt;
         this.player = this.playersList[playerNum]; //used by functions triggered by player actions
+
+        this.playerTurnText.setText(`Turn: Player ${this.player.getPlayerNum()}`);
 
         this.givePlayerResources();
         
@@ -218,7 +218,8 @@ class GameScene extends Phaser.Scene {
 
             let pAvg = {x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2};
 
-            let rdImg = this.add.image(pAvg.x, pAvg.y, 'road').setRotation(Math.atan2(p2.y - p1.y, p2.x - p1.x) + Math.PI / 2).setScale(0.08);
+            let rdImg = this.add.image(pAvg.x, pAvg.y, 'road').setRotation(Math.atan2(p2.y - p1.y, p2.x - p1.x) + Math.PI / 2).setScale(0.08).enableFilters();
+            rdImg.filters.external.addGlow(playerColors[this.player.getPlayerNum()], 1, 1);
             this.roadImgs.set(edge, rdImg);
         }
 
@@ -251,7 +252,8 @@ class GameScene extends Phaser.Scene {
 
             let pt = vertex.getVertexPixelPos();
             pt = {x: (pt.x + this.centerX), y: (pt.y + this.centerY)};
-            let buildingImg = this.add.image(pt.x, pt.y, 'settlement').setScale(0.04).setDepth(1);
+            let buildingImg = this.add.image(pt.x, pt.y, 'settlement').setScale(0.04).setDepth(1).enableFilters();
+            buildingImg.filters.external.addGlow(playerColors[this.player.getPlayerNum()], 1, 1);
             this.buildingImgs.set(vertex, buildingImg);
         }
         return;
@@ -344,8 +346,9 @@ const game = new Phaser.Game({
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
         width: 1280,
-        height: 720
+        height: 720,
     },
+    backgroundColor: '#90b38d',
     scene: [GameScene, VictoryScene], //TODO: Add Menu and victoryScene last
     title: "NoLuckCatan",
 });
