@@ -32,9 +32,9 @@ class GameScene extends Phaser.Scene {
         this.load.image('card11', 'card11.png');
         this.load.image('card12', 'card12.png');
         
-        this.load.image('road', 'road.png');
-        this.load.image('settlement', 'settlement.png');
-        this.load.image('city', 'city.png');
+        this.load.image('Road', 'road.png');
+        this.load.image('Settlement', 'settlement.png');
+        this.load.image('City', 'city.png');
 
     }
     create() {
@@ -45,12 +45,7 @@ class GameScene extends Phaser.Scene {
         this.width = this.sys.game.config.width;
         this.height = this.sys.game.config.height;
 
-        this.playerCt = 2; //TODO: create input sliders
-        this.playersList = [];
-        for (let i = 0; i < this.playerCt; i++) {
-            let player = new Player(i + 1); //Argument assigns each player a number, 1 through i+1
-            this.playersList.push(player);
-        }
+        this.createPlayers();
         
         this.min7cards = 6; //TODO: create input sliders
         this.max7cards = 6; //^
@@ -60,61 +55,22 @@ class GameScene extends Phaser.Scene {
         this.hexBoard = new HexBoard();
         this.hexBoard.buildHexBoard();
 
-        this.tileList = this.hexBoard.getHexTileArr();
-        this.numTiles = this.tileList.length;
-
-        this.tileResourceMap = new Map();
-        this.calcTileResourceMap();
-
         this.turnCt = 0;
+
+        this.selectedItem = null;
 
         this.buildingImgs = new Map();
         this.roadImgs = new Map();
 
-        //Draw hextiles
-        for (let i = 0; i < this.numTiles; i++) {
-            let tilePts = this.tileList[i].getVerticesPixels();
-            //add screen offsets to pixel coords of each tile pt
-            tilePts = tilePts.map((pt) => ({x: pt.x + this.centerX, y: pt.y + this.centerY}));
-            
-            this.add.graphics().fillStyle(0x0bfdb).fillPoints(tilePts);
-            this.add.graphics().lineStyle(1, 0x000000).strokePoints(tilePts);
-        }
+        this.selectedItemText = this.add.text(70, 100, "").setDepth(1);
+        this.playerTurnText = this.add.text(70, 50, "").setDepth(1);
 
-        //Create clickable vertices
-        this.vertexList = this.hexBoard.getVertexArr();
+        this.drawHexTiles();
+        this.calcTileResourceMap();
+        this.drawIcons();
+        this.createClickableVertices();
+        this.createClickableEdges();
 
-        for (let i = 0; i < this.vertexList.length; i++) {
-            let vertexPts = this.vertexList[i].getVertexPixelPos();
-            vertexPts = {x: vertexPts.x + this.centerX, y: vertexPts.y + this.centerY};
-
-            this.add.graphics().fillStyle(0xff0000).fillCircle(vertexPts.x, vertexPts.y, 6);
-            this.add.zone(vertexPts.x, vertexPts.y, 20, 20).setInteractive().on('pointerdown', () => {
-                this.placeSettlement(this.vertexList[i]);
-            })
-        }
-
-        //Create clickable edges
-        this.edgeList = this.hexBoard.getEdgeArr();
-
-        for (let i = 0; i < this.edgeList.length; i++) {           
-            let edgeVertices = this.edgeList[i].getEdgeVertices();
-
-            let p1 = edgeVertices[0].getVertexPixelPos();
-            p1 = {x: p1.x +  this.centerX, y: p1.y + this.centerY};
-
-            let p2 = edgeVertices[1].getVertexPixelPos();
-            p2 = {x: p2.x + this.centerX, y: p2.y + this.centerY};
-
-            let pAvg = {x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2};
-
-            this.add.graphics().fillStyle(0x000000).fillCircle(pAvg.x, pAvg.y, 6);
-            this.add.zone(pAvg.x, pAvg.y, 20, 20). setInteractive().on('pointerdown', () => {
-                this.placeRoad(this.edgeList[i]);
-            })
-        }
-
-        this.playerTurnText = this.add.text(100, 50, "").setDepth(1);
         this.takeTurnByPlayer();
         //end turn button
         this.add.text(this.width - 100, this.height - 50, "End Turn").setDepth(1);
@@ -128,7 +84,110 @@ class GameScene extends Phaser.Scene {
         
     }
 
+    createPlayers() {
+        this.playerCt = 2; //TODO: create input sliders
+        this.playersList = [];
+        for (let i = 0; i < this.playerCt; i++) {
+            let player = new Player(i + 1); //Argument assigns each player a number, 1 through i+1
+            this.playersList.push(player);
+        }
+    }
+
+    drawHexTiles() {
+        this.tileList = this.hexBoard.getHexTileArr();
+        this.numTiles = this.tileList.length;
+
+        for (let i = 0; i < this.numTiles; i++) {
+            let tilePts = this.tileList[i].getVerticesPixels();
+            //add screen offsets to pixel coords of each tile pt
+            tilePts = tilePts.map((pt) => ({x: pt.x + this.centerX, y: pt.y + this.centerY}));
+            
+            this.add.graphics().fillStyle(0xc0bfdb).fillPoints(tilePts);
+            this.add.graphics().lineStyle(1, 0x000000).strokePoints(tilePts);
+        }
+    }
+
+    drawIcons() {
+        this.iconImgs = new Map();
+        let imgs = ['Road', 'Settlement', 'City'];
+        
+        for (let i = 0; i < imgs.length; i++) {
+            let rect = this.add.rectangle(0, 0, 30, 30, 0x00ff00).setInteractive().on('pointerdown', () => {
+                this.selectItem(imgs[i]) });
+
+            let icon = this.add.image(0, 0, imgs[i]).setScale(0.02).setDepth(2);
+            let container =  this.add.container(this.width - 150 - (50 * i), this.height - 50, [rect, icon]);
+
+            this.iconImgs.set(imgs[i], container);
+        }
+    }
+
+    createClickableVertices() {
+        this.vertexList = this.hexBoard.getVertexArr();
+        this.vertexClickZones = new Map();
+
+        for (let i = 0; i < this.vertexList.length; i++) {
+            let vertexPts = this.vertexList[i].getVertexPixelPos();
+            vertexPts = {x: vertexPts.x + this.centerX, y: vertexPts.y + this.centerY};
+
+            let dot = this.add.graphics().fillStyle(0xff0000).fillCircle(vertexPts.x, vertexPts.y, 6).setVisible(false);
+            let zone = this.add.zone(vertexPts.x, vertexPts.y, 20, 20).setInteractive().on('pointerdown', () => {
+                if (this.selectedItem === 'Settlement') {
+                    this.placeSettlement(this.vertexList[i]);
+                }
+                else if (this.selectedItem === 'City') {
+                    this.placeCity(this.vertexList[i]);
+                }
+            })
+            zone.disableInteractive();
+            this.vertexClickZones.set(this.vertexList[i], {"dot": dot, "zone": zone});
+        }
+    }
+
+    createClickableEdges() {
+        this.edgeList = this.hexBoard.getEdgeArr();
+        this.edgeClickZones = new Map();
+
+        for (let i = 0; i < this.edgeList.length; i++) {           
+            let edgeVertices = this.edgeList[i].getEdgeVertices();
+
+            let p1 = edgeVertices[0].getVertexPixelPos();
+            p1 = {x: p1.x +  this.centerX, y: p1.y + this.centerY};
+
+            let p2 = edgeVertices[1].getVertexPixelPos();
+            p2 = {x: p2.x + this.centerX, y: p2.y + this.centerY};
+
+            let pAvg = {x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2};
+
+            let dot = this.add.graphics().fillStyle(0x000000).fillCircle(pAvg.x, pAvg.y, 6).setVisible(false);
+            let zone = this.add.zone(pAvg.x, pAvg.y, 20, 20). setInteractive().on('pointerdown', () => {
+                this.placeRoad(this.edgeList[i]);
+            })
+            zone.disableInteractive();
+            this.edgeClickZones.set(this.edgeList[i], {"dot": dot, "zone": zone});
+        }
+    }
+
+    selectItem(item) {
+        this.selectedItem = item;
+        this.selectedItemText.setText(`Selected item: ${this.selectedItem}`);
+
+        if (this.selectedItem === 'City' || this.selectedItem === 'Settlement') {
+            this.showZones(this.vertexClickZones, this.edgeClickZones);
+        }
+        else {
+            this.showZones(this.edgeClickZones, this.vertexClickZones);
+        }
+    }
+
+    showZones(showMap, hideMap) {
+                hideMap.forEach(val => {val.dot.setVisible(false); val.zone.disableInteractive()});
+                showMap.forEach(val => {val.dot.setVisible(true); val.zone.setInteractive()});
+    }
+
     calcTileResourceMap() {
+        this.tileResourceMap = new Map();
+
         for (let i = 0; i < this.numTiles; i++) {
             let tileRollNum = this.tileList[i].getRollNum();
 
@@ -141,16 +200,25 @@ class GameScene extends Phaser.Scene {
     }
 
     takeTurnByPlayer() {    
+        this.isPrepPhase = this.turnCt <= (this.playerCt * 2);
+
+        if (this.isPrepPhase) {
+            //Each player places one settlement followed by one connected road on an adjacent edge
+            //Once the last player does this, they get to start the second pass until the first player is reached
+            //the 2nd settlement placed during prep phase doesnt need to be adjacent to anything
+        }
+
         this.currentCard = this.cardDeck.takeTurn();
         this.turnCt++;
         
         let playerNum = (this.turnCt - 1) % this.playerCt;
         this.player = this.playersList[playerNum]; //used by functions triggered by player actions
+        
 
         this.playerTurnText.setText(`Turn: Player ${this.player.getPlayerNum()}`);
 
         this.givePlayerResources();
-        
+
         //TODO: decide who gets click input, take click input
         /*Small icons of road, city, and settlement on bottom right of players screen. When a player selects an icon, the available
         vertices/edges that the item can be placed on is highlighted. On selection of a highlighted vertex or edge, the corresponding 
@@ -218,7 +286,7 @@ class GameScene extends Phaser.Scene {
 
             let pAvg = {x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2};
 
-            let rdImg = this.add.image(pAvg.x, pAvg.y, 'road').setRotation(Math.atan2(p2.y - p1.y, p2.x - p1.x) + Math.PI / 2).setScale(0.08).enableFilters();
+            let rdImg = this.add.image(pAvg.x, pAvg.y, 'Road').setRotation(Math.atan2(p2.y - p1.y, p2.x - p1.x) + Math.PI / 2).setScale(0.08).enableFilters();
             rdImg.filters.external.addGlow(playerColors[this.player.getPlayerNum()], 1, 1);
             this.roadImgs.set(edge, rdImg);
         }
@@ -229,8 +297,6 @@ class GameScene extends Phaser.Scene {
     placeSettlement(vertex) {
         //Check for pre-existing city or settlement
         //If it isn't preparation phase (turns 1 through (num of players * 2)), check for 2 connecting roads on vertex
-        this.isPrepPhase = this.turnCt <= (this.playerCt * 2);
-
         if (this.player.getPlacementsLeft().settlements == 0) {
             this.givePlacementError(5);
             return;
@@ -252,7 +318,7 @@ class GameScene extends Phaser.Scene {
 
             let pt = vertex.getVertexPixelPos();
             pt = {x: (pt.x + this.centerX), y: (pt.y + this.centerY)};
-            let buildingImg = this.add.image(pt.x, pt.y, 'settlement').setScale(0.04).setDepth(1).enableFilters();
+            let buildingImg = this.add.image(pt.x, pt.y, 'Settlement').setScale(0.04).setDepth(1).enableFilters();
             buildingImg.filters.external.addGlow(playerColors[this.player.getPlayerNum()], 1, 1);
             this.buildingImgs.set(vertex, buildingImg);
         }
@@ -266,7 +332,7 @@ class GameScene extends Phaser.Scene {
         }
         //A city directly upgrades a settlement
         if (vertex.getHasSettlement()) {
-            this.buildingImgs.get(vertex).setTexture('city');
+            this.buildingImgs.get(vertex).setTexture('City');
             vertex.addCity();
             vertex.setOwner(this.player);
             
