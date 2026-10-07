@@ -330,8 +330,17 @@ class GameScene extends Phaser.Scene {
             this.givePlacementError(5);
             return;
         }
-        //A city directly upgrades a settlement
-        if (vertex.getHasSettlement()) {
+        //Settlement needed to upgrade to city
+        else if (!vertex.getHasSettlement()) {
+            this.givePlacementError(3);
+            return;
+        }
+        else if (vertex.getOwner() !== this.player) {
+            this.givePlacementError(1);
+            return;
+        }
+        //City directly upgrades the settlement on the same vertex
+        else if (vertex.getHasSettlement()) {
             this.buildingImgs.get(vertex).setTexture('City');
             vertex.addCity();
             vertex.setOwner(this.player);
@@ -339,11 +348,7 @@ class GameScene extends Phaser.Scene {
             this.player.decrementPlacementsLeft("cities");
             this.player.addVictoryPt();
         }
-        else {
-            this.givePlacementError(3);
-            return;
-        } 
-        
+
         return;
     }
 
