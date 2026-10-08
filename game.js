@@ -36,6 +36,12 @@ class GameScene extends Phaser.Scene {
         this.load.image('Settlement', 'settlement.png');
         this.load.image('City', 'city.png');
 
+        this.load.image('Ore', 'ore.png');
+        this.load.image('Brick', 'brick.png');
+        this.load.image('Wool', 'sheep.png');
+        this.load.image('Wheat', 'wheat.png');
+        this.load.image('Wood', 'wood.png');
+
     }
     create() {
         //center of screen x and y values
@@ -62,8 +68,9 @@ class GameScene extends Phaser.Scene {
         this.buildingImgs = new Map();
         this.roadImgs = new Map();
 
-        this.selectedItemText = this.add.text(70, 100, "").setDepth(1);
         this.playerTurnText = this.add.text(70, 50, "").setDepth(1);
+        this.selectedItemText = this.add.text(70, 100, "").setDepth(1);
+        this.resourceRolledText = this.add.text(70, this.height - 100, "").setDepth(1);
 
         this.drawHexTiles();
         this.calcTileResourceMap();
@@ -71,13 +78,13 @@ class GameScene extends Phaser.Scene {
         this.createClickableVertices();
         this.createClickableEdges();
 
-        this.takeTurnByPlayer();
         //end turn button
         this.add.text(this.width - 100, this.height - 50, "End Turn").setDepth(1);
-        this.add.rectangle(this.width - 60, this.height - 43, 90, 20, 0x00ff00).setInteractive().on('pointerdown', () => {
+        this.endTurnButton = this.add.rectangle(this.width - 60, this.height - 43, 90, 20, 0x00ff00).setInteractive().on('pointerdown', () => {
             this.takeTurnByPlayer();
         })
 
+        this.takeTurnByPlayer();
     }
 
     update() {
@@ -96,29 +103,35 @@ class GameScene extends Phaser.Scene {
     drawHexTiles() {
         this.tileList = this.hexBoard.getHexTileArr();
         this.numTiles = this.tileList.length;
+        this.resourceImageList = [];
 
         for (let i = 0; i < this.numTiles; i++) {
             let tilePts = this.tileList[i].getVerticesPixels();
+            let tileCoords = this.tileList[i].getPixelPos();
             //add screen offsets to pixel coords of each tile pt
             tilePts = tilePts.map((pt) => ({x: pt.x + this.centerX, y: pt.y + this.centerY}));
             
             this.add.graphics().fillStyle(0xc0bfdb).fillPoints(tilePts);
             this.add.graphics().lineStyle(1, 0x000000).strokePoints(tilePts);
+
+            //add resource image on hextile
+            let img = this.add.image(tileCoords.x, tileCoords.y);
         }
     }
 
     drawIcons() {
-        this.iconImgs = new Map();
+        this.iconZones = new Map();
         let imgs = ['Road', 'Settlement', 'City'];
         
         for (let i = 0; i < imgs.length; i++) {
-            let rect = this.add.rectangle(0, 0, 30, 30, 0x00ff00).setInteractive().on('pointerdown', () => {
-                this.selectItem(imgs[i]) });
+            let icon = this.add.rectangle(0, 0, 30, 30, 0x00ff00).enableFilters().setInteractive().on('pointerdown', () => {
+                this.selectItem(imgs[i]) 
+            });
 
-            let icon = this.add.image(0, 0, imgs[i]).setScale(0.02).setDepth(2);
-            let container =  this.add.container(this.width - 150 - (50 * i), this.height - 50, [rect, icon]);
+            let img = this.add.image(0, 0, imgs[i]).setScale(0.02).setDepth(2);
+            let container =  this.add.container(this.width - 150 - (50 * i), this.height - 50, [icon, img]);
 
-            this.iconImgs.set(imgs[i], container);
+            this.iconZones.set(imgs[i], {"icon" : icon, "img" : img});
         }
     }
 
@@ -175,14 +188,48 @@ class GameScene extends Phaser.Scene {
         if (this.selectedItem === 'City' || this.selectedItem === 'Settlement') {
             this.showZones(this.vertexClickZones, this.edgeClickZones);
         }
-        else {
+        else if (this.selectedItem === 'Road') {
             this.showZones(this.edgeClickZones, this.vertexClickZones);
+        }
+        else if (this.selectedItem === null) {
+            this.showZones(this.vertexClickZones, this.edgeClickZones, true);
+        }
+
+        this.outlineIcon();
+    }
+
+    showZones(showMap, hideMap, hideBoth = false) {
+        if (hideBoth === false) {
+            hideMap.forEach(val => {val.dot.setVisible(false); val.zone.disableInteractive()});
+            showMap.forEach(val => {val.dot.setVisible(true); val.zone.setInteractive()});
+        }
+        else {
+            hideMap.forEach(val => {val.dot.setVisible(false); val.zone.disableInteractive()});
+            showMap.forEach(val => {val.dot.setVisible(false); val.zone.disableInteractive()});
         }
     }
 
-    showZones(showMap, hideMap) {
-                hideMap.forEach(val => {val.dot.setVisible(false); val.zone.disableInteractive()});
-                showMap.forEach(val => {val.dot.setVisible(true); val.zone.setInteractive()});
+    outlineIcon() {
+        //create glow around icon rectangles when selected, remove glow from prev. selected
+        //if selectedItem is null, remove glow from all icons
+        this.iconZones.forEach((pair, name) => {if (name === this.selectedItem) {
+            pair.glow = pair.icon.filters.external.addGlow(0x000000, 1, 1);
+        } else {
+            pair.icon.filters.external.remove(pair.glow);
+        }});
+        return;
+    }
+
+    setIconsEnabled(step) {
+       if (step !== null) {
+            this.iconZones.forEach((pair, name) => {if (name !== step) {
+                pair.icon.setFillStyle(0x47634a).disableInteractive()} else {
+                    pair.icon.setFillStyle(0x00ff00).setInteractive()
+                }});
+        }
+        else {
+            this.iconZones.forEach((pair) => {pair.icon.setFillStyle(0x00ff00).setInteractive()});   
+        }
     }
 
     calcTileResourceMap() {
@@ -200,30 +247,26 @@ class GameScene extends Phaser.Scene {
     }
 
     takeTurnByPlayer() {    
+        this.turnCt++;
         this.isPrepPhase = this.turnCt <= (this.playerCt * 2);
 
         if (this.isPrepPhase) {
             //Each player places one settlement followed by one connected road on an adjacent edge
             //Once the last player does this, they get to start the second pass until the first player is reached
             //the 2nd settlement placed during prep phase doesnt need to be adjacent to anything
+            this.prepPhase();
         }
-
-        this.currentCard = this.cardDeck.takeTurn();
-        this.turnCt++;
+        else {
+            this.setEndTurnButton(true);
+            this.setIconsEnabled(null);         
+            this.currentCard = this.cardDeck.takeTurn();
+            this.givePlayerResources();
+        }
         
-        let playerNum = (this.turnCt - 1) % this.playerCt;
-        this.player = this.playersList[playerNum]; //used by functions triggered by player actions
+        this.player = this.playersList[this.getCurrentPlayerNum()]; //used by functions triggered by player actions
         
 
-        this.playerTurnText.setText(`Turn: Player ${this.player.getPlayerNum()}`);
-
-        this.givePlayerResources();
-
-        //TODO: decide who gets click input, take click input
-        /*Small icons of road, city, and settlement on bottom right of players screen. When a player selects an icon, the available
-        vertices/edges that the item can be placed on is highlighted. On selection of a highlighted vertex or edge, the corresponding 
-        function is triggered. There is a button to end turn.
-        */
+        this.playerTurnText.setText(`Turn: ${this.turnCt} \nPlayer ${this.player.getPlayerNum()}`);
 
         if (this.player.getPlayerVictoryPts() >= 10) {
             this.registry.set('winner', this.player);
@@ -231,8 +274,37 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    prepPhase() {
+        this.setEndTurnButton(false);
+        this.prepStep = 'Settlement';
+        this.selectItem(this.prepStep);
+        this.setIconsEnabled(this.prepStep);
+    }
+
+    setEndTurnButton(bool) {
+        if (bool) {
+            this.endTurnButton.setFillStyle(0x00ff00).setInteractive();
+        }
+        else {
+            this.endTurnButton.setFillStyle(0x47634a).disableInteractive();
+        }
+    }
+
+    getCurrentPlayerNum() {
+        if (this.turnCt <= this.playerCt) {
+            return this.turnCt - 1;
+        }
+        else if (this.turnCt <= this.playerCt * 2) {
+            return this.playerCt * 2 - this.turnCt;
+        }
+        else {
+            return (this.turnCt - 1) % this.playerCt;
+        }
+    }
+
     givePlayerResources() {
         let matchingHexes = this.tileResourceMap.get(this.currentCard);
+        let playerResourceMap = new Map();
 
         //if a 7 is drawn and matchingHexes is therefore null, no one gets resources
         if (matchingHexes == null) {
@@ -249,15 +321,24 @@ class GameScene extends Phaser.Scene {
                     //check if the player has a city, which gives 2 of each resource
                     if (hexSharedVertices[a].getHasCity()) {
                         hexSharedVertices[a].getOwner().addResource(resource, 2);
+                        playerResourceMap.set(hexSharedVertices[a].getOwner(), [resource, 2]);
                     }
                     else {
                         hexSharedVertices[a].getOwner().addResource(resource);
+                        playerResourceMap.set(hexSharedVertices[a].getOwner(), [resource, 1]);
                     }
                 }
             }
+
+            this.updateResourceRolledText(playerResourceMap);
         }
 
         return;
+    }
+
+    updateResourceRolledText(map) {
+        map.forEach((pair, owner) => {
+            this.resourceRolledText.setText(`${pair[1]} ${pair[0]} given to player ${owner.getPlayerNum()}\n`)});
     }
 
     placeRoad(edge) {        
@@ -269,7 +350,7 @@ class GameScene extends Phaser.Scene {
             this.givePlacementError(2);
             return;
         }
-        else {
+        else if (this.roadPlacementCheck(edge)) {
             edge.addRoad();
             edge.setOwner(this.player);
             this.player.addOwnedEdge(edge);
@@ -289,6 +370,14 @@ class GameScene extends Phaser.Scene {
             let rdImg = this.add.image(pAvg.x, pAvg.y, 'Road').setRotation(Math.atan2(p2.y - p1.y, p2.x - p1.x) + Math.PI / 2).setScale(0.08).enableFilters();
             rdImg.filters.external.addGlow(playerColors[this.player.getPlayerNum()], 1, 1);
             this.roadImgs.set(edge, rdImg);
+
+            if (this.isPrepPhase) {
+                this.prepStep = null;
+                this.selectItem(this.prepStep);
+                this.setIconsEnabled(this.prepStep);
+                this.outlineIcon();
+                this.takeTurnByPlayer();
+            }
         }
 
         return;
@@ -321,6 +410,13 @@ class GameScene extends Phaser.Scene {
             let buildingImg = this.add.image(pt.x, pt.y, 'Settlement').setScale(0.04).setDepth(1).enableFilters();
             buildingImg.filters.external.addGlow(playerColors[this.player.getPlayerNum()], 1, 1);
             this.buildingImgs.set(vertex, buildingImg);
+
+            //Road must be placed after settlement in preparation turns
+            if (this.isPrepPhase) {
+                this.prepStep = 'Road';
+                this.selectItem(this.prepStep);
+                this.setIconsEnabled(this.prepStep);
+            }
         }
         return;
     }
@@ -351,7 +447,6 @@ class GameScene extends Phaser.Scene {
 
         return;
     }
-
     
     settlementPlacementCheck(vertex) {
         let neighborEdges = vertex.getVertexEdges();
@@ -379,15 +474,41 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    roadPlacementCheck(edge) {
+        let edgeVertices = edge.getEdgeVertices();
+        let hasOwnItem = false;
+
+        for (let i = 0; i < 2; i++) {
+            let vertexEdges = edgeVertices[i].getVertexEdges();
+
+            if (edgeVertices[i].getOwner() === this.player) {
+                hasOwnItem = true;
+            }            
+            for (let a = 0; a < vertexEdges.length; a++) {
+                if (vertexEdges[a].getOwner() === this.player) {
+                    hasOwnItem = true;
+                }
+            }
+        }
+
+        if (hasOwnItem || this.isPrepPhase) {
+            return true;
+        }
+        else {
+            this.givePlacementError(7);
+            return;
+        }
+    }
+
     givePlacementError(errorNum) {
         const errorList = {
             1: "There is already a settlement or city there.",
             2: "There is already a road there.",
-            3: "Settlement needed to upgrade to city.",
-            4: "Two connecting roads needed to place settlement.",
+            3: "Own settlement needed to upgrade to city.",
+            4: "Two own connecting roads needed to place settlement.",
             5: "Max number of building type placed.",
             6: "Placement too close to existing building.",
-            7: "Build a connecting road first."
+            7: "Build own connecting road first."
         }
         alert(errorList[errorNum]);
         return;

@@ -19,7 +19,7 @@ class HexTile {
         let x = this.size * (Math.sqrt(3) * this.axialCoords[0] + Math.sqrt(3)/2 * this.axialCoords[1]);
         let y = this.size * (3/2 * this.axialCoords[1]);
         
-        return [x, y];
+        return {x: x, y: y};
     }
 
     calcResourceType() {
