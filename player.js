@@ -40,10 +40,6 @@ class Player {
         }
     }
 
-    addResources() {
-
-    }
-
     addOwnedEdge(edge) {
         this.ownedEdges.push(edge);
     }

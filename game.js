@@ -99,7 +99,6 @@ class GameScene extends Phaser.Scene {
         this.tileList = this.hexBoard.getHexTileArr();
         this.numTiles = this.tileList.length;
         this.resourceImageMap = new Map;
-        this.tileRollNumMap = new Map; //tile and num text obect map
 
         for (let i = 0; i < this.numTiles; i++) {
             let tilePts = this.tileList[i].getVerticesPixels();
@@ -296,7 +295,7 @@ class GameScene extends Phaser.Scene {
             this.currentCard = this.cardDeck.takeTurn();
             this.showCurrentCard();
             this.givePlayerResources();
-            this.updatePlayerInventory();
+            this.updatePlayerInventoryUI();
         }
 
         if (this.player.getPlayerVictoryPts() >= 10) {
@@ -373,18 +372,13 @@ class GameScene extends Phaser.Scene {
     }
 
     placeRoad(edge) {        
-        if (this.player.getPlacementsLeft().roads == 0) {
-            this.givePlacementError(5);
-            return;
-        }
-        else if (edge.getHasRoad()) {
-            this.givePlacementError(2);
-            return;
-        }
-        else if (this.roadPlacementCheck(edge)) {
+        if (this.roadPlacementCheck(edge)) {
             edge.addRoad();
             edge.setOwner(this.player);
             this.player.addOwnedEdge(edge);
+
+            this.player.addResource({Brick: -1, Wood: -1});
+            this.updatePlayerInventoryUI();
 
             this.player.decrementPlacementsLeft("roads");
 
@@ -414,24 +408,14 @@ class GameScene extends Phaser.Scene {
         return;
     }
 
-    placeSettlement(vertex) {
-        //Check for pre-existing city or settlement
-        //If it isn't preparation phase (turns 1 through (num of players * 2)), check for 2 connecting roads on vertex
-        if (this.player.getPlacementsLeft().settlements == 0) {
-            this.givePlacementError(5);
-            return;
-        }
-        else if (vertex.getHasSettlement() || vertex.getHasCity()) {
-            this.givePlacementError(1);
-            return;
-        }
-        else if (!this.settlementPlacementCheck(vertex)) {
-            return;
-        }
-        else {
+    placeSettlement(vertex) {        
+        if (this.settlementPlacementCheck(vertex)) {
             vertex.addSettlement();
             vertex.setOwner(this.player);
             this.player.addOwnedVertex(vertex);
+
+            this.player.addResource({Brick: -1, Wood: -1, Wheat : -1, Wool: -1});
+            this.updatePlayerInventoryUI();
 
             this.player.decrementPlacementsLeft("settlements");
             this.player.addVictoryPt();
@@ -453,24 +437,14 @@ class GameScene extends Phaser.Scene {
     }
 
     placeCity(vertex) {
-        if (this.player.getPlacementsLeft().cities == 0) {
-            this.givePlacementError(5);
-            return;
-        }
-        //Settlement needed to upgrade to city
-        else if (!vertex.getHasSettlement()) {
-            this.givePlacementError(3);
-            return;
-        }
-        else if (vertex.getOwner() !== this.player) {
-            this.givePlacementError(1);
-            return;
-        }
         //City directly upgrades the settlement on the same vertex
-        else if (vertex.getHasSettlement()) {
+        if (this.cityPlacementCheck(vertex)) {
             this.buildingImgs.get(vertex).setTexture('City');
             vertex.addCity();
             vertex.setOwner(this.player);
+
+            this.player.addResource({Ore: -3, Wheat: -2});
+            this.updatePlayerInventoryUI();
             
             this.player.decrementPlacementsLeft("cities");
             this.player.addVictoryPt();
@@ -482,6 +456,18 @@ class GameScene extends Phaser.Scene {
     settlementPlacementCheck(vertex) {
         let neighborEdges = vertex.getVertexEdges();
         let hasOwnRoad = false; //check if any edge touching current vertex has a road
+        let playerResources = this.player.getPlayerResources();
+
+        //Check for pre-existing city or settlement
+        //If it isn't preparation phase (turns 1 through (num of players * 2)), check for 2 connecting roads on vertex
+        if (this.player.getPlacementsLeft().settlements == 0) {
+            this.givePlacementError(5);
+            return;
+        }
+        else if (vertex.getHasSettlement() || vertex.getHasCity()) {
+            this.givePlacementError(1);
+            return;
+        }
 
         for (let i = 0; i < neighborEdges.length; i++) {
             //get shared edges by vertex, then get the corresponding vertex that isn't this vertex
@@ -496,18 +482,31 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        if (hasOwnRoad || this.isPrepPhase) {
-            return true;
+        if (playerResources.Brick < 1 || playerResources.Wood < 1 || playerResources.Wheat < 1 || playerResources.Wool < 1) {
+            this.givePlacementError(8);
+        }
+        else if (!(hasOwnRoad || this.isPrepPhase)) {
+            this.givePlacementError(7);
         }
         else {
-            this.givePlacementError(7);
             return;
         }
+        return;
     }
 
     roadPlacementCheck(edge) {
         let edgeVertices = edge.getEdgeVertices();
         let hasOwnItem = false;
+        let playerResources = this.player.getPlayerResources();
+
+        if (this.player.getPlacementsLeft().roads == 0) {
+            this.givePlacementError(5);
+            return;
+        }
+        else if (edge.getHasRoad()) {
+            this.givePlacementError(2);
+            return;
+        }
 
         for (let i = 0; i < 2; i++) {
             let vertexEdges = edgeVertices[i].getVertexEdges();
@@ -522,13 +521,38 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        if (hasOwnItem || this.isPrepPhase) {
-            return true;
+        if (playerResources.Brick < 1 || playerResources.Wood < 1) {
+            this.givePlacementError(8);
+        }
+        else if (!(hasOwnItem || this.isPrepPhase)) {
+            this.givePlacementError(7);
         }
         else {
-            this.givePlacementError(7);
-            return;
+            return true;
         }
+        return;
+    }
+
+    cityPlacementCheck(vertex) {
+        let playerResources = this.player.getPlayerResources();
+        
+        if (this.player.getPlacementsLeft().cities == 0) {
+            this.givePlacementError(5);
+        }
+        //Settlement needed to upgrade to city
+        else if (!vertex.getHasSettlement()) {
+            this.givePlacementError(3);
+        }
+        else if (vertex.getOwner() !== this.player) {
+            this.givePlacementError(1);
+        }
+        else if(playerResources.Ore < 3 || playerResources.Wheat < 2) {
+            this.givePlacementError(8);
+        }
+        else {
+            return true;
+        }
+        return;
     }
 
     givePlacementError(errorNum) {
