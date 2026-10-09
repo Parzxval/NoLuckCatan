@@ -47,8 +47,8 @@ class HexTile {
             let angle = 60 * i - 30;
             let rad = angle * Math.PI / 180;
 
-            let x = this.pixelPos[0] + this.size * Math.cos(rad);
-            let y = this.pixelPos[1] + this.size * Math.sin(rad);
+            let x = this.pixelPos.x + this.size * Math.cos(rad);
+            let y = this.pixelPos.y + this.size * Math.sin(rad);
 
             vertPixArr.push({x, y});
         }

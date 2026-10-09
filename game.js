@@ -19,18 +19,10 @@ class GameScene extends Phaser.Scene {
     }
     preload() {
         this.load.path = 'assets/';
-        this.load.image('card1', 'card1.png');
-        this.load.image('card2', 'card2.png');
-        this.load.image('card3', 'card3.png');
-        this.load.image('card4', 'card4.png');
-        this.load.image('card5', 'card5.png');
-        this.load.image('card6', 'card6.png');
-        this.load.image('card7', 'card7.png');
-        this.load.image('card8', 'card8.png');
-        this.load.image('card9', 'card9.png');
-        this.load.image('card10', 'card10.png');
-        this.load.image('card11', 'card11.png');
-        this.load.image('card12', 'card12.png');
+        
+        for (let i = 1; i <= 12; i++) {
+            this.load.image('card' + i, 'card' + i + '.png');
+        }
         
         this.load.image('Road', 'road.png');
         this.load.image('Settlement', 'settlement.png');
@@ -68,6 +60,8 @@ class GameScene extends Phaser.Scene {
         this.buildingImgs = new Map();
         this.roadImgs = new Map();
 
+        this.currCardImg = this.add.image(this.width - 50, 50, '').setScale(0.05).setDepth(1).setVisible(false);
+
         this.playerTurnText = this.add.text(70, 50, "").setDepth(1);
         this.selectedItemText = this.add.text(70, 100, "").setDepth(1);
         this.resourceRolledText = this.add.text(70, this.height - 100, "").setDepth(1);
@@ -75,6 +69,7 @@ class GameScene extends Phaser.Scene {
         this.drawHexTiles();
         this.calcTileResourceMap();
         this.drawIcons();
+        this.drawPlayerInventory();
         this.createClickableVertices();
         this.createClickableEdges();
 
@@ -103,7 +98,8 @@ class GameScene extends Phaser.Scene {
     drawHexTiles() {
         this.tileList = this.hexBoard.getHexTileArr();
         this.numTiles = this.tileList.length;
-        this.resourceImageList = [];
+        this.resourceImageMap = new Map;
+        this.tileRollNumMap = new Map; //tile and num text obect map
 
         for (let i = 0; i < this.numTiles; i++) {
             let tilePts = this.tileList[i].getVerticesPixels();
@@ -115,7 +111,16 @@ class GameScene extends Phaser.Scene {
             this.add.graphics().lineStyle(1, 0x000000).strokePoints(tilePts);
 
             //add resource image on hextile
-            let img = this.add.image(tileCoords.x, tileCoords.y);
+            let img = this.add.image(tileCoords.x + (this.width / 2), tileCoords.y + (this.height / 2), this.tileList[i].getResourceType()).setScale(0.05);
+            this.resourceImageMap.set(this.tileList[i], img);
+
+            //add roll number on hextile
+            let num = this.add.text(tileCoords.x + (this.width / 2), tileCoords.y + (this.height / 2), `${this.tileList[i].getRollNum()}`, {
+                fontSize: '20px',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 4
+            }).setOrigin(0.5, 0.5).setDepth(3);
         }
     }
 
@@ -132,6 +137,28 @@ class GameScene extends Phaser.Scene {
             let container =  this.add.container(this.width - 150 - (50 * i), this.height - 50, [icon, img]);
 
             this.iconZones.set(imgs[i], {"icon" : icon, "img" : img});
+        }
+    }
+
+    drawPlayerInventory() {
+        this.resourceList = ['Wood', 'Wheat', "Ore", "Brick", "Wool"];
+        this.inventoryTextList = [];
+        
+        for (let i = 0; i < 5; i++) {        
+            this.add.image(80 + (50 * i), this.height / 2, this.resourceList[i]).setOrigin(0.5, 0).setScale(0.03);
+            let text = this.add.text(80 + (50 * i), this.height / 2, 0, {
+                stroke: '#000000',
+                strokeThickness: 4
+            }).setOrigin(0.5, 0.5);
+            this.inventoryTextList.push(text);
+        }
+    }
+
+    updatePlayerInventory() {
+        let resourceCt = this.player.getPlayerResources();
+        
+        for (let i = 0; i < 5; i++) {
+            this.inventoryTextList[i].setText(resourceCt[this.resourceList[i]]);
         }
     }
 
@@ -209,6 +236,10 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    showCurrentCard() {
+        this.currCardImg.setTexture('card' + this.currentCard).setVisible(true);
+    }
+
     outlineIcon() {
         //create glow around icon rectangles when selected, remove glow from prev. selected
         //if selectedItem is null, remove glow from all icons
@@ -250,6 +281,9 @@ class GameScene extends Phaser.Scene {
         this.turnCt++;
         this.isPrepPhase = this.turnCt <= (this.playerCt * 2);
 
+        this.player = this.playersList[this.getCurrentPlayerNum()]; //used by functions triggered by player actions  
+        this.playerTurnText.setText(`Turn: ${this.turnCt} \nPlayer ${this.player.getPlayerNum()}`);
+
         if (this.isPrepPhase) {
             //Each player places one settlement followed by one connected road on an adjacent edge
             //Once the last player does this, they get to start the second pass until the first player is reached
@@ -260,13 +294,10 @@ class GameScene extends Phaser.Scene {
             this.setEndTurnButton(true);
             this.setIconsEnabled(null);         
             this.currentCard = this.cardDeck.takeTurn();
+            this.showCurrentCard();
             this.givePlayerResources();
+            this.updatePlayerInventory();
         }
-        
-        this.player = this.playersList[this.getCurrentPlayerNum()]; //used by functions triggered by player actions
-        
-
-        this.playerTurnText.setText(`Turn: ${this.turnCt} \nPlayer ${this.player.getPlayerNum()}`);
 
         if (this.player.getPlayerVictoryPts() >= 10) {
             this.registry.set('winner', this.player);
@@ -508,7 +539,8 @@ class GameScene extends Phaser.Scene {
             4: "Two own connecting roads needed to place settlement.",
             5: "Max number of building type placed.",
             6: "Placement too close to existing building.",
-            7: "Build own connecting road first."
+            7: "Build own connecting road first.",
+            8: "Not enough resources."
         }
         alert(errorList[errorNum]);
         return;
