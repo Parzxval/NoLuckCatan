@@ -115,7 +115,7 @@ class GameScene extends Phaser.Scene {
             this.resourceImageMap.set(this.tileList[i], img);
 
             //add roll number on hextile
-            let num = this.add.text(tileCoords.x + (this.width / 2), tileCoords.y + (this.height / 2), `${this.tileList[i].getRollNum()}`, {
+            this.add.text(tileCoords.x + (this.width / 2), tileCoords.y + (this.height / 2), `${this.tileList[i].getRollNum()}`, {
                 fontSize: '20px',
                 fontStyle: 'bold',
                 stroke: '#000000',
@@ -154,8 +154,8 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    updatePlayerInventory() {
-        let resourceCt = this.player.getPlayerResources();
+    updatePlayerInventoryUI() {
+        let resourceCt = this.player.getPlayerResources();        
         
         for (let i = 0; i < 5; i++) {
             this.inventoryTextList[i].setText(resourceCt[this.resourceList[i]]);

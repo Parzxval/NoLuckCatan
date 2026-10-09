@@ -28,8 +28,20 @@ class Player {
         this.victoryPts = 0;
     }
 
-    addResource(resource, num = 1) {
-        this.resourceCt[resource] += num;
+    addResource(resourceList = null, resource = null, num = 1) {
+        //Option to add/subtract multiple resources at once by passing a list or an individual resource 
+        if (resourceList === null) {
+            this.resourceCt[resource] += num;
+        }
+        else {
+            for ([resource, num] of Object.entries(resourceList)) {
+                this.addResource(null, resource, num);
+            }
+        }
+    }
+
+    addResources() {
+
     }
 
     addOwnedEdge(edge) {
