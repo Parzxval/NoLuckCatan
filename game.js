@@ -346,17 +346,17 @@ class GameScene extends Phaser.Scene {
             let resource = matchingHexes[i].getResourceType();
 
             for (let a = 0; a < hexSharedVertices.length; a++) {
+                let owner = hexSharedVertices[a].getOwner();
 
-                if (hexSharedVertices[a].getOwner() != null) {
+                if (owner != null) {
                     //check if the player has a city, which gives 2 of each resource
-                    if (hexSharedVertices[a].getHasCity()) {
-                        hexSharedVertices[a].getOwner().addResource(resource, 2);
-                        playerResourceMap.set(hexSharedVertices[a].getOwner(), [resource, 2]);
+                    let amt = hexSharedVertices[a].getHasCity() ? 2 : 1;
+                    owner.addResource(resource, amt);
+
+                    if (!(playerResourceMap.has(owner))) {
+                        playerResourceMap.set(owner, []);
                     }
-                    else {
-                        hexSharedVertices[a].getOwner().addResource(resource);
-                        playerResourceMap.set(hexSharedVertices[a].getOwner(), [resource, 1]);
-                    }
+                        playerResourceMap.get(owner).push([resource, amt]);                    
                 }
             }
 
@@ -367,8 +367,15 @@ class GameScene extends Phaser.Scene {
     }
 
     updateResourceRolledText(map) {
-        map.forEach((pair, owner) => {
-            this.resourceRolledText.setText(`${pair[1]} ${pair[0]} given to player ${owner.getPlayerNum()}\n`)});
+        let message = ``;
+
+        map.forEach((pairArr, owner) => {
+            for (let pair of pairArr) {
+                message += `${pair[1]} ${pair[0]} given to player ${owner.getPlayerNum()}\n`;
+            }
+        });
+        
+        this.resourceRolledText.setText(message);
     }
 
     placeRoad(edge) {        
