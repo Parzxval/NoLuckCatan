@@ -6,7 +6,11 @@ class Menu extends Phaser.Scene {
 
     }
     create() {
-
+        this.playButton = this.add.rectangle(this.sys.game.config.width / 2, this.sys.game.config.height / 2, 100, 50, 0x00ff00).setOrigin(0.5, 0.5).setInteractive().on('pointerdown', () => {
+            this.scene.start('gameScene');
+        });
+        this.titleText = this.add.text(this.sys.game.config.width / 2, this.sys.game.config.height / 3, 'Cardtan...with cards').setOrigin(0.5, 0.5)
+        this.playText = this.add.text(this.sys.game.config.width / 2, this.sys.game.config.height / 2, 'Play')
     }
     update() {
         
@@ -39,6 +43,7 @@ class GameScene extends Phaser.Scene {
         //center of screen x and y values
         this.centerX = this.sys.game.config.width/2;
         this.centerY = this.sys.game.config.height/2;
+
         //Screen width and height
         this.width = this.sys.game.config.width;
         this.height = this.sys.game.config.height;
@@ -47,6 +52,7 @@ class GameScene extends Phaser.Scene {
         
         this.min7cards = 6; //TODO: create input sliders
         this.max7cards = 6; //^
+        this.ptsToVictory = 7;
         
         this.cardDeck = new DeckofCards(this.min7cards, this.max7cards);
         
@@ -77,6 +83,12 @@ class GameScene extends Phaser.Scene {
         this.add.text(this.width - 100, this.height - 50, "End Turn").setDepth(1);
         this.endTurnButton = this.add.rectangle(this.width - 60, this.height - 43, 90, 20, 0x00ff00).setInteractive().on('pointerdown', () => {
             this.takeTurnByPlayer();
+        })
+
+        //Simulate victory button
+        this.add.text(this.width - 23, this.height / 2, "Simulate Victory").setDepth(1).setOrigin(1, 0.5);
+        this.simulateVictoryButton = this.add.rectangle(this.width - 15, this.height / 2, 170, 20, 0x00ff00).setOrigin(1, 0.5).setInteractive().on('pointerdown', () => {
+            this.victory();
         })
 
         this.takeTurnByPlayer();
@@ -297,11 +309,6 @@ class GameScene extends Phaser.Scene {
             this.givePlayerResources();
             this.updatePlayerInventoryUI();
         }
-
-        if (this.player.getPlayerVictoryPts() >= 10) {
-            this.registry.set('winner', this.player);
-            this.scene.start('victoryScene');
-        }
     }
 
     prepPhase() {
@@ -384,8 +391,10 @@ class GameScene extends Phaser.Scene {
             edge.setOwner(this.player);
             this.player.addOwnedEdge(edge);
 
-            this.player.addResource({Brick: -1, Wood: -1});
-            this.updatePlayerInventoryUI();
+            if (!(this.isPrepPhase)) {
+                this.player.addResource({Brick: -1, Wood: -1});
+                this.updatePlayerInventoryUI();
+            }
 
             this.player.decrementPlacementsLeft("roads");
 
@@ -421,17 +430,20 @@ class GameScene extends Phaser.Scene {
             vertex.setOwner(this.player);
             this.player.addOwnedVertex(vertex);
 
-            this.player.addResource({Brick: -1, Wood: -1, Wheat : -1, Wool: -1});
-            this.updatePlayerInventoryUI();
-
-            this.player.decrementPlacementsLeft("settlements");
-            this.player.addVictoryPt();
+            if (!(this.isPrepPhase)) {
+                this.player.addResource({Brick: -1, Wood: -1, Wheat : -1, Wool: -1});
+                this.updatePlayerInventoryUI();
+            }
 
             let pt = vertex.getVertexPixelPos();
             pt = {x: (pt.x + this.centerX), y: (pt.y + this.centerY)};
             let buildingImg = this.add.image(pt.x, pt.y, 'Settlement').setScale(0.04).setDepth(1).enableFilters();
             buildingImg.filters.external.addGlow(playerColors[this.player.getPlayerNum()], 1, 1);
             this.buildingImgs.set(vertex, buildingImg);
+
+            this.player.decrementPlacementsLeft("settlements");
+            this.player.addVictoryPt();
+            this.calcVictory();
 
             //Road must be placed after settlement in preparation turns
             if (this.isPrepPhase) {
@@ -450,11 +462,14 @@ class GameScene extends Phaser.Scene {
             vertex.addCity();
             vertex.setOwner(this.player);
 
-            this.player.addResource({Ore: -3, Wheat: -2});
-            this.updatePlayerInventoryUI();
+            if (!(this.isPrepPhase)) {
+                this.player.addResource({Ore: -3, Wheat: -2});
+                this.updatePlayerInventoryUI();
+            }
             
             this.player.decrementPlacementsLeft("cities");
             this.player.addVictoryPt();
+            this.calcVictory();
         }
 
         return;
@@ -489,14 +504,14 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        if (playerResources.Brick < 1 || playerResources.Wood < 1 || playerResources.Wheat < 1 || playerResources.Wool < 1) {
-            this.givePlacementError(8);
-        }
-        else if (!(hasOwnRoad || this.isPrepPhase)) {
+        if (!(hasOwnRoad || this.isPrepPhase)) {
             this.givePlacementError(7);
         }
+        else if (!(this.isPrepPhase) && (playerResources.Brick < 1 || playerResources.Wood < 1 || playerResources.Wheat < 1 || playerResources.Wool < 1)) {
+            this.givePlacementError(8);
+        }
         else {
-            return;
+            return true;
         }
         return;
     }
@@ -528,11 +543,11 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        if (playerResources.Brick < 1 || playerResources.Wood < 1) {
-            this.givePlacementError(8);
-        }
-        else if (!(hasOwnItem || this.isPrepPhase)) {
+        if (!(hasOwnItem || this.isPrepPhase)) {
             this.givePlacementError(7);
+        }
+        else if (!(this.isPrepPhase) && (playerResources.Brick < 1 || playerResources.Wood < 1)) {
+            this.givePlacementError(8);
         }
         else {
             return true;
@@ -576,6 +591,17 @@ class GameScene extends Phaser.Scene {
         alert(errorList[errorNum]);
         return;
     }
+
+    calcVictory() {
+        if (this.player.getPlayerVictoryPts() >= this.ptsToVictory) {
+            this.victory();
+        }
+    }
+
+    victory() {
+            this.registry.set('winner', this.player);
+            this.scene.start('victoryScene');
+    }
 }
 
 class VictoryScene extends Phaser.Scene {
@@ -584,11 +610,14 @@ class VictoryScene extends Phaser.Scene {
     }
 
     preload() {
+        this.load.path = 'assets/';
 
+        this.load.image('victory', 'victory.png');
     }
 
     create() {
-
+        this.victoryScreen = this.add.image(this.sys.game.config.width / 2, this.sys.game.config.height / 2, 'victory').setScale(0.4).setOrigin(0.5, 0.5);
+        this.victoryText = this.add.text(this.sys.game.config.width / 2, this.sys.game.config.height / 2, `(At least for player ${this.registry.get('winner').getPlayerNum()})`);
     }
 
     update() {
@@ -604,6 +633,6 @@ const game = new Phaser.Game({
         height: 720,
     },
     backgroundColor: '#90b38d',
-    scene: [GameScene, VictoryScene], //TODO: Add Menu and victoryScene last
+    scene: [Menu, GameScene, VictoryScene], //TODO: Add Menu and victoryScene last
     title: "NoLuckCatan",
 });
