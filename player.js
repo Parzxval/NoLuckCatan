@@ -28,14 +28,14 @@ class Player {
         this.victoryPts = 0;
     }
 
-    addResource(resourceList = null, resource = null, num = 1) {
+    addResource(resources, num = 1) {
         //Option to add/subtract multiple resources at once by passing a list or an individual resource 
-        if (resourceList === null) {
-            this.resourceCt[resource] += num;
+        if (typeof resources === `string`) {
+            this.resourceCt[resources] += num;
         }
         else {
-            for ([resource, num] of Object.entries(resourceList)) {
-                this.addResource(null, resource, num);
+            for (let [resource, num] of Object.entries(resources)) {
+                this.addResource(resource, num);
             }
         }
     }
