@@ -367,11 +367,12 @@ class GameScene extends Phaser.Scene {
     outlineIcon() {
         //create glow around icon rectangles when selected, remove glow from prev. selected
         //if selectedItem is null, remove glow from all icons
-        this.iconZones.forEach((pair, name) => {if (name === this.selectedItem) {
-            pair.glow = pair.icon.filters.external.addGlow(0x000000, 1, 1);
-        } else {
+        this.iconZones.forEach((pair, name) => {
             pair.icon.filters.external.remove(pair.glow);
-        }});
+            if (name === this.selectedItem) {
+            pair.glow = pair.icon.filters.external.addGlow(0x000000, 1, 1);
+            }
+        });
         return;
     }
 
@@ -729,8 +730,17 @@ class VictoryScene extends Phaser.Scene {
     }
 
     create() {
+        //Screen width and height
+        this.width = this.sys.game.config.width;
+        this.height = this.sys.game.config.height;
+        
         this.victoryScreen = this.add.image(this.sys.game.config.width / 2, this.sys.game.config.height / 2, 'victory').setScale(0.4).setOrigin(0.5, 0.5);
         this.victoryText = this.add.text(this.sys.game.config.width / 2, this.sys.game.config.height / 2, `(At least for player ${this.registry.get('winner').getPlayerNum()})`);
+
+        this.playAgainButton = this.add.rectangle(this.width / 2, this.height / 1.3, 100, 50, 0x000000).setOrigin(0.5, 0.5).setDepth(2).setInteractive().on('pointerdown', () => {
+        this.scene.start('gameSetup');
+        });
+        this.playAgainText = this.add.text(this.width / 2, this.height / 1.3, 'Play again').setDepth(3).setOrigin(0.5, 0.5);
     }
 
     update() {
