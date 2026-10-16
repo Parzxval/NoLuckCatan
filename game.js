@@ -3,17 +3,127 @@ class Menu extends Phaser.Scene {
         super('menu');
     }
     preload() {
-
+        this.load.path = 'assets/';
+        this.load.image('title', 'cardtan.png');
     }
     create() {
-        this.playButton = this.add.rectangle(this.sys.game.config.width / 2, this.sys.game.config.height / 2, 100, 50, 0x00ff00).setOrigin(0.5, 0.5).setInteractive().on('pointerdown', () => {
-            this.scene.start('gameScene');
+        //Screen width and height
+        this.width = this.sys.game.config.width;
+        this.height = this.sys.game.config.height;
+
+        this.titleImg = this.add.image(this.width / 2, this.height / 5, 'title').setOrigin(0.5, 0.5).setScale(0.5);
+        this.titleText = this.add.text(this.width / 2, this.height / 3, "(its the game that can't be named for legal reasons...but with cards)").setOrigin(0.5, 0.5);
+
+        this.playButton = this.add.rectangle(this.width / 2, this.height / 2, 100, 50, 0x000000).setOrigin(0.5, 0.5).setInteractive().on('pointerdown', () => {
+            this.scene.start('gameSetup');
         });
-        this.titleText = this.add.text(this.sys.game.config.width / 2, this.sys.game.config.height / 3, 'Cardtan...with cards').setOrigin(0.5, 0.5)
-        this.playText = this.add.text(this.sys.game.config.width / 2, this.sys.game.config.height / 2, 'Play')
+        this.playText = this.add.text(this.width / 2, this.height / 2, 'Play').setOrigin(0.5, 0.5);
     }
     update() {
         
+    }
+}
+
+class GameSetup extends Phaser.Scene {
+    constructor() {
+        super('gameSetup');
+    }
+    preload() {
+        this.load.path = 'assets/';
+        this.load.image('info', 'info.png');
+    }
+    create() {
+        //Screen width and height
+        this.width = this.sys.game.config.width;
+        this.height = this.sys.game.config.height;
+
+        this.startText = this.add.text(this.width / 2, this.height / 1.3, 'Start').setOrigin(0.5, 0.5).setDepth(5);
+
+        //Create 3 static rectangles for settings sliders
+        this.settings = [
+            {name: 'min7', min: 0, max: 20, value: 1},
+            {name: 'max7', min: 0, max: 20, value: 7},
+            {name: 'playerct', min: 1, max: 4, value: 1},
+            {name: 'ptstovictory', min: 3, max: 12, value: 3}
+        ];
+
+        this.settingDesc = [
+            "Range of 7 cards:",
+            "Player count:",
+            "Number of points needed to win:"
+        ];
+
+        this.sliderWidth = 400;
+        this.startX = this.width / 2 - this.sliderWidth / 2;
+        this.endX = this.width / 2 + this.sliderWidth / 2;
+
+        this.sliderList = [];
+        this.handleList = [];
+
+        for (let i = 0; i < 3; i++) {
+            let y = this.height / 3 + (100 * i);
+
+            let slider = this.add.rectangle(this.width / 2, y, this.sliderWidth, 5, 0x0000ff).setOrigin(0.5, 0.5);
+            this.sliderList.push(slider);
+
+            let sliderText = this.add.text(this.startX, y - 50, this.settingDesc[i]);
+            slider.text = sliderText;
+
+            let handle = this.add.circle(this.startX, y, 7, 0xff0000).setOrigin(0.5, 0.5).setInteractive({draggable: true});
+            this.handleList.push(handle);
+
+            let handleText = this.add.text(handle.x, handle.y - 20, '1').setOrigin(0.5, 0.5);
+            handle.valueText = handleText;
+
+            //create max7 handle once and add info for context
+            if (i === 0) {
+                let maxHandle = this.add.circle(this.endX, y, 7, 0x00ff00).setOrigin(0.5, 0.5).setInteractive({draggable: true});
+                this.handleList.push(maxHandle);
+
+                let maxText = this.add.text(maxHandle.x, maxHandle.y - 20, '7').setOrigin(0.5, 0.5);
+                maxHandle.valueText = maxText;
+
+                this.info1Text = this.add.text(this.endX + 20, y - 70, "number of 7 cards in one deck will \nbe randomly chosen within range\n6 '7' cards in a 2-dice card deck").setVisible(false);
+                this.info1 = this.add.image(this.endX, y - 50, 'info').setOrigin(0.5, 0).setScale(0.07).setInteractive();
+                this.info1.on('pointerover', (pointer) => {
+                    this.info1Text.setVisible(true);
+                });
+                this.info1.on('pointerout', (pointer) => {
+                    this.info1Text.setVisible(false);
+                });
+            }
+        }
+
+        this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
+            let index = this.handleList.indexOf(gameObject);
+            let x = Phaser.Math.Clamp(dragX, this.startX, this.endX);
+
+            if (index === 0) {
+                x = Math.min(x, this.handleList[1].x);
+            }
+            else if (index === 1) {
+                x = Math.max(x, this.handleList[0].x);
+            }
+            gameObject.x = x;
+
+            let setting = this.settings[index];
+            setting.value = Math.round(setting.min + (x - this.startX) / this.sliderWidth * (setting.max - setting.min));
+
+            gameObject.valueText.setText(setting.value);
+            gameObject.valueText.setPosition(gameObject.x, gameObject.y - 20);
+        });
+        
+        this.startButton = this.add.rectangle(this.width / 2, this.height / 1.3, 100, 50, 0x000000).setOrigin(0.5, 0.5).setInteractive().on('pointerdown', () => {
+            this.settings.forEach(setting => {
+                this.registry.set(setting.name, setting.value);
+            });
+            this.scene.start('gameScene');
+        });
+
+
+    }
+    update() {
+
     }
 }
 
@@ -48,11 +158,15 @@ class GameScene extends Phaser.Scene {
         this.width = this.sys.game.config.width;
         this.height = this.sys.game.config.height;
 
+        this.min7cards = this.registry.get('min7');
+        console.log('min7: ' + this.min7cards);
+        this.max7cards = this.registry.get('max7');
+        console.log('max7: ' + this.max7cards)
+        this.playerCt = this.registry.get('playerct');
+        console.log('players: ' + this.playerCt);
+        this.ptsToVictory = this.registry.get('ptstovictory');
+
         this.createPlayers();
-        
-        this.min7cards = 6; //TODO: create input sliders
-        this.max7cards = 6; //^
-        this.ptsToVictory = 7;
         
         this.cardDeck = new DeckofCards(this.min7cards, this.max7cards);
         
@@ -99,7 +213,6 @@ class GameScene extends Phaser.Scene {
     }
 
     createPlayers() {
-        this.playerCt = 2; //TODO: create input sliders
         this.playersList = [];
         for (let i = 0; i < this.playerCt; i++) {
             let player = new Player(i + 1); //Argument assigns each player a number, 1 through i+1
@@ -633,6 +746,6 @@ const game = new Phaser.Game({
         height: 720,
     },
     backgroundColor: '#90b38d',
-    scene: [Menu, GameScene, VictoryScene], //TODO: Add Menu and victoryScene last
+    scene: [Menu, GameSetup, GameScene, VictoryScene],
     title: "NoLuckCatan",
 });
