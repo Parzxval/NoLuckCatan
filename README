@@ -1,0 +1,23 @@
+# Cardtan
+
+The boardgame we all know and love using cards instead of dice to reduce luck.
+
+[Playable Link](https://parzxval.github.io/NoLuckCatan/)
+
+## Asset Attributions
+
+- click.wav by annabloom -- <https://freesound.org/s/219069/> -- License: Attribution NonCommercial 4.0
+- place.wav by MiloJezzy -- <https://freesound.org/s/658417/> -- License: Creative Commons 0
+
+- All image assets were hand-drawn by me in Sketchbook
+
+## Requirements
+
+- Scenes: Menu, GameSetup, GameScene, VictoryScene
+- 2+ Audio Assets: click.wav, place.wav plays on icon clicks and building placements.
+- 2+ Image Assets: card images, building/road images, and resource images
+- 2+ Geometric Shapes: rectangles for buttons, slider tracks, circles for vertex placement dots and slider handles
+- Logotype Text: cardtan.png shown as the title on the menu screen
+- Multi-line Text Block: info tooltip in gamesetup and turn/player text
+- Fading Scene Transition: GameScene faded in from black
+- Object Motion Animation: dropIntoPlace() drops roads/settlements using a tween
