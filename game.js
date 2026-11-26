@@ -5,6 +5,8 @@ class Menu extends Phaser.Scene {
     preload() {
         this.load.path = 'assets/';
         this.load.image('title', 'cardtan.png');
+        this.load.audio('click', 'click.wav');
+        this.load.audio('place', 'place.wav');
     }
     create() {
         //Screen width and height
@@ -15,6 +17,7 @@ class Menu extends Phaser.Scene {
         this.titleText = this.add.text(this.width / 2, this.height / 3, "(its the game that can't be named for legal reasons...but with cards)").setOrigin(0.5, 0.5);
 
         this.playButton = this.add.rectangle(this.width / 2, this.height / 2, 100, 50, 0x000000).setOrigin(0.5, 0.5).setInteractive().on('pointerdown', () => {
+            this.sound.play('click');
             this.scene.start('gameSetup');
         });
         this.playText = this.add.text(this.width / 2, this.height / 2, 'Play').setOrigin(0.5, 0.5);
@@ -114,6 +117,7 @@ class GameSetup extends Phaser.Scene {
         });
         
         this.startButton = this.add.rectangle(this.width / 2, this.height / 1.3, 100, 50, 0x000000).setOrigin(0.5, 0.5).setInteractive().on('pointerdown', () => {
+            this.sound.play('click');
             this.settings.forEach(setting => {
                 this.registry.set(setting.name, setting.value);
             });
@@ -132,6 +136,9 @@ class GameScene extends Phaser.Scene {
         super('gameScene');
     }
     preload() {
+        //Transition while loading
+        this.cameras.main.fadeIn(200, 0, 0, 0);
+
         this.load.path = 'assets/';
         
         for (let i = 1; i <= 12; i++) {
@@ -150,6 +157,7 @@ class GameScene extends Phaser.Scene {
 
     }
     create() {
+
         //center of screen x and y values
         this.centerX = this.sys.game.config.width/2;
         this.centerY = this.sys.game.config.height/2;
@@ -196,12 +204,14 @@ class GameScene extends Phaser.Scene {
         //end turn button
         this.add.text(this.width - 100, this.height - 50, "End Turn").setDepth(1);
         this.endTurnButton = this.add.rectangle(this.width - 60, this.height - 43, 90, 20, 0x00ff00).setInteractive().on('pointerdown', () => {
+            this.sound.play('click');
             this.takeTurnByPlayer();
         })
 
         //Simulate victory button
         this.add.text(this.width - 23, this.height / 2, "Simulate Victory").setDepth(1).setOrigin(1, 0.5);
         this.simulateVictoryButton = this.add.rectangle(this.width - 15, this.height / 2, 170, 20, 0x00ff00).setOrigin(1, 0.5).setInteractive().on('pointerdown', () => {
+            this.sound.play('click');
             this.victory();
         })
 
@@ -254,6 +264,7 @@ class GameScene extends Phaser.Scene {
         
         for (let i = 0; i < imgs.length; i++) {
             let icon = this.add.rectangle(0, 0, 30, 30, 0x00ff00).enableFilters().setInteractive().on('pointerdown', () => {
+                this.sound.play('click');
                 this.selectItem(imgs[i]) 
             });
 
@@ -296,6 +307,8 @@ class GameScene extends Phaser.Scene {
 
             let dot = this.add.graphics().fillStyle(0xff0000).fillCircle(vertexPts.x, vertexPts.y, 6).setVisible(false);
             let zone = this.add.zone(vertexPts.x, vertexPts.y, 20, 20).setInteractive().on('pointerdown', () => {
+                this.sound.play('place');
+
                 if (this.selectedItem === 'Settlement') {
                     this.placeSettlement(this.vertexList[i]);
                 }
@@ -325,6 +338,8 @@ class GameScene extends Phaser.Scene {
 
             let dot = this.add.graphics().fillStyle(0x000000).fillCircle(pAvg.x, pAvg.y, 6).setVisible(false);
             let zone = this.add.zone(pAvg.x, pAvg.y, 20, 20). setInteractive().on('pointerdown', () => {
+                this.sound.play('place');
+
                 this.placeRoad(this.edgeList[i]);
             })
             zone.disableInteractive();
@@ -499,6 +514,17 @@ class GameScene extends Phaser.Scene {
         this.resourceRolledText.setText(message);
     }
 
+    dropIntoPlace(gameObject, finalY) {
+        gameObject.y = finalY - 35;
+
+        this.tweens.add({
+            targets: gameObject,
+            y: finalY,
+            duration: 200,
+            ease: 'Bounce.Out'
+        });
+    }
+
     placeRoad(edge) {        
         if (this.roadPlacementCheck(edge)) {
             edge.addRoad();
@@ -524,6 +550,7 @@ class GameScene extends Phaser.Scene {
 
             let rdImg = this.add.image(pAvg.x, pAvg.y, 'Road').setRotation(Math.atan2(p2.y - p1.y, p2.x - p1.x) + Math.PI / 2).setScale(0.08).enableFilters();
             rdImg.filters.external.addGlow(playerColors[this.player.getPlayerNum()], 1, 1);
+            this.dropIntoPlace(rdImg, pAvg.y);
             this.roadImgs.set(edge, rdImg);
 
             if (this.isPrepPhase) {
@@ -553,6 +580,7 @@ class GameScene extends Phaser.Scene {
             pt = {x: (pt.x + this.centerX), y: (pt.y + this.centerY)};
             let buildingImg = this.add.image(pt.x, pt.y, 'Settlement').setScale(0.04).setDepth(1).enableFilters();
             buildingImg.filters.external.addGlow(playerColors[this.player.getPlayerNum()], 1, 1);
+            this.dropIntoPlace(buildingImg, pt.y);
             this.buildingImgs.set(vertex, buildingImg);
 
             this.player.decrementPlacementsLeft("settlements");
@@ -738,7 +766,8 @@ class VictoryScene extends Phaser.Scene {
         this.victoryText = this.add.text(this.sys.game.config.width / 2, this.sys.game.config.height / 2, `(At least for player ${this.registry.get('winner').getPlayerNum()})`);
 
         this.playAgainButton = this.add.rectangle(this.width / 2, this.height / 1.3, 100, 50, 0x000000).setOrigin(0.5, 0.5).setDepth(2).setInteractive().on('pointerdown', () => {
-        this.scene.start('gameSetup');
+            this.sound.play('click');
+            this.scene.start('gameSetup');
         });
         this.playAgainText = this.add.text(this.width / 2, this.height / 1.3, 'Play again').setDepth(3).setOrigin(0.5, 0.5);
     }
